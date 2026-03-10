@@ -1,5 +1,15 @@
 # plugin의 활용
 
+Plugin은 아래와 같이 skill을 이용해 동작하는데 외부의 연결은 MCP를 포함한 connector로 구현하고 sub-agent를 활용할 수 있습니다.
+
+```text
+Plugin = Skills(행동 방식) + Connectors(외부 연결) + Slash Commands(명령어) + Sub-agents(하위 에이전트) 
+```
+
+
+
+
+
 
 설치
 
