@@ -1,0 +1,9 @@
+__pycache__
+
+# configuration
+config.json
+MEMORY.md
+memory/
+node_modules/
+package-lock.json
+package.json

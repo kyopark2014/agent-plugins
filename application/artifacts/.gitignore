@@ -1,0 +1,8 @@
+__pycache__
+
+# configuration
+config.json
+*.pdf
+*.md
+*.pptx
+*.drawio
