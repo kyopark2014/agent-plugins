@@ -100,6 +100,7 @@ with st.sidebar:
             "drawio",
             "aws-drawio",
             "text_extraction",
+            "slack_mcp",
             "사용자 설정"
         ]
         mcp_selections = {}
