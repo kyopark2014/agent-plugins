@@ -18,9 +18,9 @@ import urllib.request
 import urllib.error
 
 # Configuration
-project_name = "plugins" # at least 3 characters
+project_name = "agent-plugins" # at least 3 characters
 region = "us-west-2"
-git_name = "plugins"
+git_name = "agent-plugins"
 
 sts_client = boto3.client("sts", region_name=region)
 account_id = sts_client.get_caller_identity()["Account"]

@@ -99,6 +99,7 @@ with st.sidebar:
             "web_fetch",
             "drawio",
             "aws-drawio",
+            "text_extraction",
             "사용자 설정"
         ]
         mcp_selections = {}

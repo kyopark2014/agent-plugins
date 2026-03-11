@@ -12,7 +12,7 @@ import argparse
 import sys
 
 # Configuration
-project_name = "plugins"
+project_name = "agent-plugins"
 region = "us-west-2"  
 
 sts_client = boto3.client("sts", region_name=region)
