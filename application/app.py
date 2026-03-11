@@ -23,6 +23,9 @@ os.environ["DEV"] = "true"  # Skip user confirmation of get_user_input
 # title
 st.set_page_config(page_title='agent-skills', page_icon=None, layout="centered", initial_sidebar_state="auto", menu_items=None)
 
+plugin_list = langgraph_agent.available_plugins_list()
+logger.info(f"plugin_list: {plugin_list}")
+
 mode_descriptions = {
     "일상적인 대화": [
         "대화이력을 바탕으로 챗봇과 일상의 대화를 편안히 즐길수 있습니다."
@@ -35,7 +38,7 @@ mode_descriptions = {
     ],
     "Agent (Chat)": [
         "SKILL과 MCP를 활용한 Agent를 이용합니다. 채팅 히스토리를 이용해 interative한 대화를 즐길 수 있습니다."
-    ],
+    ],    
     "QA Agent": [
         "RAG를 이용해 얻은 정보로 Test Case를 생성합니다."
     ],
@@ -43,6 +46,9 @@ mode_descriptions = {
         "이미지를 선택하여 멀티모달을 이용하여 분석합니다."
     ]
 }
+
+for plugin in plugin_list:
+    mode_descriptions[plugin["name"]] = [plugin.get("description", plugin.get("name", ""))]
 
 agentType = 'langgraph'
 with st.sidebar:
@@ -56,10 +62,12 @@ with st.sidebar:
     )
 
     st.subheader("🐱 대화 형태")
+
+    options = ["일상적인 대화", "RAG", "Agent", "Agent (Chat)", "QA Agent", "이미지 분석"] + [plugin["name"] for plugin in plugin_list]
     
     # radio selection
     mode = st.radio(
-        label="원하는 대화 형태를 선택하세요. ",options=["일상적인 대화", "RAG", "Agent", "Agent (Chat)", "QA Agent", "이미지 분석"], index=3
+        label="원하는 대화 형태를 선택하세요. ",options=options, index=3
     )   
     st.info(mode_descriptions[mode][0])
     

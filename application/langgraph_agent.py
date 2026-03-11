@@ -1,4 +1,5 @@
 import logging
+import re
 import sys
 import os
 import io
@@ -174,6 +175,64 @@ def available_skills_list():
         skill_list.append({"name": s.name, "description": s.description})
         
     return skill_list
+
+def _get_plugin_description_from_readme(plugin_path: str) -> str:
+    """Read README.md and return first sentence summarized in Korean."""
+    readme_path = os.path.join(plugin_path, "README.md")
+    if not os.path.isfile(readme_path):
+        return ""
+    try:
+        with open(readme_path, "r", encoding="utf-8") as f:
+            content = f.read()
+    except Exception:
+        return ""
+    # Skip markdown headers, get first meaningful line
+    lines = content.strip().split("\n")
+    first_sentence = ""
+    for line in lines:
+        line = line.strip()
+        if line and not line.startswith("#"):
+            match = re.search(r"^([^.!?]*[.!?])", line)
+            if match:
+                first_sentence = match.group(1).strip()
+            else:
+                first_sentence = line.split(".")[0] + "." if "." in line else line
+            break
+    if not first_sentence:
+        return ""
+    # Strip markdown links [text](url) -> text to avoid URL truncation in translation
+    first_sentence = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", first_sentence)
+    # Translate to Korean
+    try:
+        result = chat.translate_text(first_sentence)
+        # Remove <article> tags that translate_text may include in output
+        result = re.sub(r"</?article>", "", result, flags=re.IGNORECASE).strip()
+        # Remove markdown links [text](url) -> text
+        result = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", result)
+        # Remove plain URLs
+        result = re.sub(r"https?://[^\s\)]+", "", result).strip()
+        # Collapse multiple spaces
+        result = re.sub(r"\s+", " ", result).strip()
+        return result
+    except Exception:
+        logger.warning("Could not translate plugin description: %s...", first_sentence[:50])
+        return first_sentence
+
+
+def available_plugins_list():
+    plugin_dir = PLUGINS_DIR
+    if not os.path.isdir(plugin_dir):
+        return []
+    
+    plugin_list = []
+    for name in os.listdir(plugin_dir):
+        plugin_path = os.path.join(plugin_dir, name)
+        if not os.path.isdir(plugin_path):
+            continue
+        description = _get_plugin_description_from_readme(plugin_path)
+        plugin_list.append({"name": name, "description": description or name})
+    
+    return plugin_list
 
 # ═══════════════════════════════════════════════════════════════════
 #  2. Built-in Tools – code execution, file I/O, S3 upload
