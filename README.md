@@ -1,5 +1,9 @@
 # Plugin의 활용
 
+여기에서는 Anthropic의 Plugin을 LangGraph로 구현하는 방법에 대해 설명합니다.
+
+## Anthropic의 Plugin
+
 Plugin은 아래와 같이 skill을 이용해 동작하는데 외부의 연결은 MCP를 포함한 connector로 구현하고 sub-agent를 활용할 수 있습니다.
 
 ```text
