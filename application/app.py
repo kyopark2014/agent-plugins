@@ -6,8 +6,10 @@ import logging
 import sys
 import os
 import asyncio
-import qa_agent
 import langgraph_agent
+import plugin_agent
+
+from pathlib import Path
 
 logging.basicConfig(
     level=logging.INFO,  # Default to INFO level
@@ -23,7 +25,7 @@ os.environ["DEV"] = "true"  # Skip user confirmation of get_user_input
 # title
 st.set_page_config(page_title='agent-skills', page_icon=None, layout="centered", initial_sidebar_state="auto", menu_items=None)
 
-plugin_list = langgraph_agent.available_plugins_list()
+plugin_list = plugin_agent.available_plugins_list()
 logger.info(f"plugin_list: {plugin_list}")
 
 mode_descriptions = {
@@ -39,16 +41,16 @@ mode_descriptions = {
     "Agent (Chat)": [
         "SKILL과 MCP를 활용한 Agent를 이용합니다. 채팅 히스토리를 이용해 interative한 대화를 즐길 수 있습니다."
     ],    
-    "QA Agent": [
-        "RAG를 이용해 얻은 정보로 Test Case를 생성합니다."
-    ],
     "이미지 분석": [
         "이미지를 선택하여 멀티모달을 이용하여 분석합니다."
+    ],
+    "enterprise-search": [
+        "Email, chat, documents, and wikis 등 다양한 도구를 이용해 검색을 합니다."
+    ],
+    "productivity": [
+        "Task management, workplace memory, visual dashboard를 이용한 작업을 관리합니다."
     ]
 }
-
-for plugin in plugin_list:
-    mode_descriptions[plugin["name"]] = [plugin.get("description", plugin.get("name", ""))]
 
 agentType = 'langgraph'
 with st.sidebar:
@@ -63,7 +65,7 @@ with st.sidebar:
 
     st.subheader("🐱 대화 형태")
 
-    options = ["일상적인 대화", "RAG", "Agent", "Agent (Chat)", "QA Agent", "이미지 분석"] + [plugin["name"] for plugin in plugin_list]
+    options = ["일상적인 대화", "RAG", "Agent", "Agent (Chat)", "이미지 분석"] + [plugin["name"] for plugin in plugin_list]
     
     # radio selection
     mode = st.radio(
@@ -79,13 +81,12 @@ with st.sidebar:
         skill_selections = {}
         default_skill_selections = ["pdf", "search-weather", "notion", "memory-manager"]
         with st.expander("Skill 옵션 선택", expanded=True):
-            if langgraph_agent.skill_manager.registry:
-                skill_list = langgraph_agent.available_skills_list()
-                logger.info(f"skill_list: {skill_list}")
-                for skill in skill_list:
-                    default_value = skill["name"] in default_skill_selections
-                    skill_selections[skill["name"]] = st.checkbox(skill["name"], key=f"skill_{skill['name']}", value=default_value, help=skill["description"], disabled=False)
-        
+            skill_list = langgraph_agent.available_skills_list()
+            logger.info(f"skill_list: {skill_list}")
+            for skill in skill_list:
+                default_value = skill["name"] in default_skill_selections
+                skill_selections[skill["name"]] = st.checkbox(skill["name"], key=f"skill_{skill['name']}", value=default_value, help=skill["description"], disabled=False)
+    
         selected_skills = [skill for skill, is_selected in skill_selections.items() if is_selected]
         logger.info(f"selected_skills: {selected_skills}")
 
@@ -108,7 +109,7 @@ with st.sidebar:
             "drawio",
             "aws-drawio",
             "text_extraction",
-            "slack_mcp",
+            "slack",
             "사용자 설정"
         ]
         mcp_selections = {}
@@ -381,17 +382,6 @@ if prompt := st.chat_input("메시지를 입력하세요."):
                 file_name = url[url.rfind('/')+1:]
                 st.image(url, caption=file_name, use_container_width=True)
         
-        elif mode == "QA Agent":
-            with st.status("thinking...", expanded=True, state="running") as status:
-                containers = {
-                    "tools": st.empty(),
-                    "status": st.empty(),
-                    "notification": [st.empty() for _ in range(500)]
-                }
-                response = asyncio.run(qa_agent.run_qa_agent(prompt, containers))
-                logger.info(f"response: {response}")
-                st.session_state.messages.append({"role": "assistant", "content": response})
-        
         elif mode == "이미지 분석":
             if uploaded_file is None or uploaded_file == "":
                 st.error("파일을 먼저 업로드하세요.")
@@ -406,6 +396,31 @@ if prompt := st.chat_input("메시지를 입력하세요."):
                         st.write(summary)
 
                         st.session_state.messages.append({"role": "assistant", "content": summary})
+
+        else:
+            for plugin in plugin_list:
+                if mode == plugin["name"]:
+                    # Create plugin folder in works if it doesn't exist
+                    works_dir = Path(__file__).resolve().parent.parent / "works"
+                    plugin_works_dir = works_dir / plugin["name"]
+                    if not plugin_works_dir.exists():
+                        plugin_works_dir.mkdir(parents=True)
+                        logger.info(f"Created works dir: {plugin_works_dir}")
+
+                    with st.status("thinking...", expanded=True, state="running") as status:
+                        containers = {
+                            "tools": st.empty(),
+                            "status": st.empty(),
+                            "notification": [st.empty() for _ in range(500)]
+                        }
+                        response = asyncio.run(plugin_agent.run_plugin_agent(
+                            query=prompt, 
+                            plugin_name=plugin["name"],
+                            work_dir=plugin_works_dir,
+                            containers=containers))
+                        logger.info(f"response: {response}")
+                        st.session_state.messages.append({"role": "assistant", "content": response})
+                    break
 
 def main():
     """Entry point for the application."""

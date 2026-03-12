@@ -1,5 +1,4 @@
 import logging
-import re
 import sys
 import os
 import io
@@ -38,7 +37,6 @@ user_id = "langgraph"
 WORKING_DIR = os.path.dirname(os.path.abspath(__file__))
 SKILLS_DIR = os.path.join(WORKING_DIR, "skills")
 ARTIFACTS_DIR = os.path.join(WORKING_DIR, "artifacts")
-PLUGINS_DIR = os.path.join(WORKING_DIR, "plugins")
 
 # ═══════════════════════════════════════════════════════════════════
 #  1. Skill System  – Anthropic Agent Skills spec 구현
@@ -55,12 +53,10 @@ class Skill:
 class SkillManager:
     """Discovers, loads and selects Agent Skills following the Anthropic spec."""
 
-    def __init__(self, skills_dir: str = SKILLS_DIR, plugins_dir: str = PLUGINS_DIR):
+    def __init__(self, skills_dir: str = SKILLS_DIR):
         self.skills_dir = skills_dir
-        self.plugins_dir = plugins_dir
         self.registry: dict[str, Skill] = {}
         self._discover(skills_dir)
-        self._plugin_register()
 
     # ---- discovery & metadata loading ----
 
@@ -87,20 +83,6 @@ class SkillManager:
                     logger.info(f"Skill discovered: {skill.name}")
                 except Exception as e:
                     logger.warning(f"Failed to load skill '{entry}': {e}")
-
-    def _plugin_register(self):
-        """Scan application/plugins, discover each plugin's skills folder, and register via _discover."""
-        plugin_dir = self.plugins_dir
-        if not os.path.isdir(plugin_dir):
-            return
-
-        for plugin_name in os.listdir(plugin_dir):
-            plugin_path = os.path.join(plugin_dir, plugin_name)
-            skills_dir = os.path.join(plugin_path, "skills")
-            if os.path.isdir(skills_dir):
-                self._discover(skills_dir)
-
-
 
     @staticmethod
     def _parse_skill_md(filepath: str) -> tuple[dict, str]:
@@ -139,32 +121,13 @@ class SkillManager:
         skill = self.registry.get(name)
         return skill.instructions if skill else None
 
-    def select_skills(self, query: str) -> list[Skill]:
-        """Keyword-based matching to select relevant skills for a query."""
-        query_lower = query.lower()
-        selected = []
-        for skill in self.registry.values():
-            keywords = skill.description.lower().split()
-            if any(kw in query_lower for kw in keywords if len(kw) > 3):
-                selected.append(skill)
-        return selected
-
-    def build_active_skill_prompt(self, skills: list[Skill]) -> str:
-        """Build the full instructions block for activated skills."""
-        if not skills:
-            return ""
-        parts = ["<active_skills>"]
-        for s in skills:
-            parts.append(f'<skill name="{s.name}">')
-            parts.append(s.instructions)
-            parts.append("</skill>")
-        parts.append("</active_skills>")
-        return "\n".join(parts)
-
-# global singleton
-skill_manager = SkillManager()
+skill_manager = None
 
 def available_skills_list():
+    global skill_manager
+    if skill_manager is None:
+        skill_manager = SkillManager()
+
     registry = skill_manager.registry
     
     if not registry:
@@ -175,64 +138,6 @@ def available_skills_list():
         skill_list.append({"name": s.name, "description": s.description})
         
     return skill_list
-
-def _get_plugin_description_from_readme(plugin_path: str) -> str:
-    """Read README.md and return first sentence summarized in Korean."""
-    readme_path = os.path.join(plugin_path, "README.md")
-    if not os.path.isfile(readme_path):
-        return ""
-    try:
-        with open(readme_path, "r", encoding="utf-8") as f:
-            content = f.read()
-    except Exception:
-        return ""
-    # Skip markdown headers, get first meaningful line
-    lines = content.strip().split("\n")
-    first_sentence = ""
-    for line in lines:
-        line = line.strip()
-        if line and not line.startswith("#"):
-            match = re.search(r"^([^.!?]*[.!?])", line)
-            if match:
-                first_sentence = match.group(1).strip()
-            else:
-                first_sentence = line.split(".")[0] + "." if "." in line else line
-            break
-    if not first_sentence:
-        return ""
-    # Strip markdown links [text](url) -> text to avoid URL truncation in translation
-    first_sentence = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", first_sentence)
-    # Translate to Korean
-    try:
-        result = chat.translate_text(first_sentence)
-        # Remove <article> tags that translate_text may include in output
-        result = re.sub(r"</?article>", "", result, flags=re.IGNORECASE).strip()
-        # Remove markdown links [text](url) -> text
-        result = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", result)
-        # Remove plain URLs
-        result = re.sub(r"https?://[^\s\)]+", "", result).strip()
-        # Collapse multiple spaces
-        result = re.sub(r"\s+", " ", result).strip()
-        return result
-    except Exception:
-        logger.warning("Could not translate plugin description: %s...", first_sentence[:50])
-        return first_sentence
-
-
-def available_plugins_list():
-    plugin_dir = PLUGINS_DIR
-    if not os.path.isdir(plugin_dir):
-        return []
-    
-    plugin_list = []
-    for name in os.listdir(plugin_dir):
-        plugin_path = os.path.join(plugin_dir, name)
-        if not os.path.isdir(plugin_path):
-            continue
-        description = _get_plugin_description_from_readme(plugin_path)
-        plugin_list.append({"name": name, "description": description or name})
-    
-    return plugin_list
 
 # ═══════════════════════════════════════════════════════════════════
 #  2. Built-in Tools – code execution, file I/O, S3 upload
@@ -828,7 +733,7 @@ def load_multiple_mcp_server_parameters(mcp_json: dict):
     server_info = {}
     if mcpServers is not None:
         for server_name, cfg in mcpServers.items():
-            if cfg.get("type") == "streamable_http":
+            if cfg.get("type") in ("streamable_http", "http"):
                 server_info[server_name] = {
                     "transport": "streamable_http",
                     "url": cfg.get("url"),

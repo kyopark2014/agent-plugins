@@ -697,14 +697,6 @@ def create_secrets() -> Dict[str, str]:
                 "notion_api_key": ""
             }
         },
-        "telegram": {
-            "name": f"telegramapikey-{project_name}",
-            "description": "secret for telegram api key",
-            "secret_value": {
-                "project_name": project_name,
-                "telegram_api_key": ""
-            }
-        },
         "slack": {
             "name": f"slackapikey-{project_name}",
             "description": "secret for slack api key",
@@ -731,34 +723,14 @@ def create_secrets() -> Dict[str, str]:
                     logger.info(f"Enter credential of {secret_config['name']} (Weather API Key - OpenWeatherMap):")
                     api_key = input(f"Creating {secret_config['name']} - Weather API Key (OpenWeatherMap): ").strip()
                     secret_config["secret_value"]["weather_api_key"] = api_key
-                elif key == "langsmith":
-                    logger.info(f"Enter credential of {secret_config['name']} (LangSmith API Key):")
-                    api_key = input(f"Creating {secret_config['name']} - LangSmith API Key: ").strip()
-                    secret_config["secret_value"]["langsmith_api_key"] = api_key
                 elif key == "tavily":
                     logger.info(f"Enter credential of {secret_config['name']} (Tavily API Key):")
                     api_key = input(f"Creating {secret_config['name']} - Tavily API Key: ").strip()
                     secret_config["secret_value"]["tavily_api_key"] = api_key
-                elif key == "perplexity":
-                    logger.info(f"Enter credential of {secret_config['name']} (Perplexity API Key):")
-                    api_key = input(f"Creating {secret_config['name']} - Perplexity API Key: ").strip()
-                    secret_config["secret_value"]["perplexity_api_key"] = api_key
-                elif key == "firecrawl":
-                    logger.info(f"Enter credential of {secret_config['name']} (Firecrawl API Key):")
-                    api_key = input(f"Creating {secret_config['name']} - Firecrawl API Key: ").strip()
-                    secret_config["secret_value"]["firecrawl_api_key"] = api_key
-                elif key == "nova_act":
-                    logger.info(f"Enter credential of {secret_config['name']} (Nova Act API Key):")
-                    api_key = input(f"Creating {secret_config['name']} - Nova Act API Key: ").strip()
-                    secret_config["secret_value"]["nova_act_api_key"] = api_key
                 elif key == "notion":
                     logger.info(f"Enter credential of {secret_config['name']} (Notion API Key):")
                     api_key = input(f"Creating {secret_config['name']} - Notion API Key: ").strip()
                     secret_config["secret_value"]["notion_api_key"] = api_key
-                elif key == "telegram":
-                    logger.info(f"Enter credential of {secret_config['name']} (Telegram Bot API Key):")
-                    api_key = input(f"Creating {secret_config['name']} - Telegram Bot API Key: ").strip()
-                    secret_config["secret_value"]["telegram_api_key"] = api_key
                 elif key == "slack":
                     logger.info(f"Enter credential of {secret_config['name']} (Slack Team ID and Bot Token):")
                     team_id = input(f"Creating {secret_config['name']} - Slack Team ID: ").strip()
