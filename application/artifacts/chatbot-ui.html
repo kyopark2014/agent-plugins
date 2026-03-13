@@ -6,82 +6,82 @@
   <title>SYEON · AI Chat</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Syne:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;1,300&family=Noto+Sans+KR:wght@300;400;500&display=swap" rel="stylesheet" />
 
   <style>
-    :root {
-      --bg-deep:      #050c18;
-      --bg-panel:     #080f1e;
-      --bg-card:      #0d1829;
-      --bg-input:     #0a1422;
-      --border:       rgba(56, 189, 248, 0.12);
-      --border-glow:  rgba(56, 189, 248, 0.35);
-      --accent:       #38bdf8;
-      --accent-dim:   rgba(56, 189, 248, 0.18);
-      --accent-glow:  rgba(56, 189, 248, 0.08);
-      --teal:         #2dd4bf;
-      --teal-dim:     rgba(45, 212, 191, 0.15);
-      --text-primary: #e2eaf4;
-      --text-secondary: #7a9ab8;
-      --text-muted:   #3d5a73;
-      --user-bg:      linear-gradient(135deg, #0f2744 0%, #0d2038 100%);
-      --ai-bg:        #0d1829;
-      --shadow-glow:  0 0 40px rgba(56, 189, 248, 0.06);
-      --radius-lg:    16px;
-      --radius-md:    10px;
-      --radius-sm:    6px;
-    }
-
+    /* ─── RESET & BASE ─────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0a0a0f;
+      --surface:   #111118;
+      --panel:     #16161f;
+      --border:    rgba(255,255,255,0.07);
+      --border-hi: rgba(255,255,255,0.14);
+      --accent:    #e8ff47;
+      --accent2:   #47ffe8;
+      --accent3:   #ff4778;
+      --text:      #e8e8f0;
+      --muted:     #6b6b80;
+      --user-bg:   #1e1e2e;
+      --ai-bg:     #111118;
+      --radius:    14px;
+      --font-head: 'Syne', sans-serif;
+      --font-mono: 'DM Mono', monospace;
+      --font-body: 'Noto Sans KR', sans-serif;
+    }
 
     html, body {
       height: 100%;
-      background: var(--bg-deep);
-      color: var(--text-primary);
-      font-family: 'Noto Sans KR', sans-serif;
-      font-weight: 300;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 15px;
+      line-height: 1.65;
       overflow: hidden;
     }
 
-    /* ── 배경 노이즈 & 그리드 ── */
+    /* ─── NOISE OVERLAY ────────────────────────────────────── */
     body::before {
       content: '';
-      position: fixed; inset: 0; z-index: 0;
-      background-image:
-        radial-gradient(ellipse 80% 50% at 20% -10%, rgba(56,189,248,0.07) 0%, transparent 60%),
-        radial-gradient(ellipse 60% 40% at 80% 110%, rgba(45,212,191,0.05) 0%, transparent 55%);
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
       pointer-events: none;
-    }
-    body::after {
-      content: '';
-      position: fixed; inset: 0; z-index: 0;
-      background-image:
-        linear-gradient(rgba(56,189,248,0.025) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(56,189,248,0.025) 1px, transparent 1px);
-      background-size: 48px 48px;
-      pointer-events: none;
+      z-index: 9999;
+      opacity: 0.4;
     }
 
-    /* ── 레이아웃 ── */
+    /* ─── LAYOUT ───────────────────────────────────────────── */
     .app {
-      position: relative; z-index: 1;
       display: grid;
       grid-template-columns: 260px 1fr;
+      grid-template-rows: 100vh;
       height: 100vh;
     }
 
-    /* ── 사이드바 ── */
+    /* ─── SIDEBAR ──────────────────────────────────────────── */
     .sidebar {
-      background: var(--bg-panel);
+      background: var(--surface);
       border-right: 1px solid var(--border);
       display: flex;
       flex-direction: column;
       padding: 0;
       overflow: hidden;
+      position: relative;
+    }
+
+    .sidebar::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 200px;
+      background: linear-gradient(to top, var(--surface), transparent);
+      pointer-events: none;
+      z-index: 2;
     }
 
     .sidebar-header {
-      padding: 28px 20px 20px;
+      padding: 28px 22px 20px;
       border-bottom: 1px solid var(--border);
     }
 
@@ -94,551 +94,630 @@
 
     .logo-mark {
       width: 32px; height: 32px;
-      border: 1.5px solid var(--accent);
+      background: var(--accent);
       border-radius: 8px;
       display: flex; align-items: center; justify-content: center;
-      position: relative;
-      box-shadow: 0 0 12px rgba(56,189,248,0.2), inset 0 0 8px rgba(56,189,248,0.05);
-    }
-    .logo-mark::before {
-      content: '';
-      width: 10px; height: 10px;
-      background: var(--accent);
-      border-radius: 50%;
-      box-shadow: 0 0 8px var(--accent);
-      animation: pulse-dot 2.4s ease-in-out infinite;
-    }
-    @keyframes pulse-dot {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.5; transform: scale(0.7); }
+      flex-shrink: 0;
     }
 
+    .logo-mark svg { width: 18px; height: 18px; }
+
     .logo-text {
-      font-family: 'Syne', sans-serif;
+      font-family: var(--font-head);
       font-weight: 800;
       font-size: 18px;
-      letter-spacing: 0.08em;
-      color: var(--text-primary);
+      letter-spacing: -0.02em;
+      color: #fff;
     }
-    .logo-text span { color: var(--accent); }
+
+    .logo-text span {
+      color: var(--accent);
+    }
 
     .new-chat-btn {
       width: 100%;
       padding: 10px 14px;
-      background: var(--accent-dim);
-      border: 1px solid var(--border-glow);
-      border-radius: var(--radius-md);
-      color: var(--accent);
-      font-family: 'DM Mono', monospace;
-      font-size: 12px;
-      font-weight: 500;
-      letter-spacing: 0.06em;
+      background: transparent;
+      border: 1px solid var(--border-hi);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: var(--font-head);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
       cursor: pointer;
-      display: flex; align-items: center; gap: 8px;
-      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
     }
+
     .new-chat-btn:hover {
-      background: rgba(56,189,248,0.25);
-      box-shadow: 0 0 16px rgba(56,189,248,0.15);
+      background: var(--border);
+      border-color: var(--accent);
+      color: var(--accent);
     }
-    .new-chat-btn svg { flex-shrink: 0; }
+
+    .new-chat-btn svg { width: 14px; height: 14px; }
 
     .sidebar-section {
-      padding: 16px 20px 8px;
+      padding: 16px 22px 8px;
     }
-    .sidebar-section-label {
-      font-family: 'DM Mono', monospace;
+
+    .sidebar-label {
+      font-family: var(--font-mono);
       font-size: 10px;
-      font-weight: 500;
       letter-spacing: 0.12em;
-      color: var(--text-muted);
       text-transform: uppercase;
+      color: var(--muted);
       margin-bottom: 8px;
     }
 
-    .chat-history {
+    .chat-list {
       flex: 1;
       overflow-y: auto;
-      padding: 0 12px;
-      scrollbar-width: thin;
-      scrollbar-color: var(--border) transparent;
+      padding: 0 12px 80px;
+      scrollbar-width: none;
     }
-    .chat-history::-webkit-scrollbar { width: 4px; }
-    .chat-history::-webkit-scrollbar-track { background: transparent; }
-    .chat-history::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .chat-list::-webkit-scrollbar { display: none; }
 
-    .history-item {
+    .chat-item {
       padding: 9px 10px;
-      border-radius: var(--radius-sm);
+      border-radius: 10px;
       cursor: pointer;
-      display: flex; align-items: center; gap: 8px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
       transition: background 0.15s;
       margin-bottom: 2px;
     }
-    .history-item:hover { background: var(--accent-glow); }
-    .history-item.active {
-      background: var(--accent-dim);
-      border: 1px solid var(--border);
-    }
-    .history-item-dot {
-      width: 5px; height: 5px;
+
+    .chat-item:hover { background: var(--panel); }
+    .chat-item.active { background: var(--panel); }
+
+    .chat-item-dot {
+      width: 6px; height: 6px;
       border-radius: 50%;
-      background: var(--text-muted);
+      background: var(--muted);
       flex-shrink: 0;
     }
-    .history-item.active .history-item-dot { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
-    .history-item-text {
-      font-size: 12.5px;
-      color: var(--text-secondary);
+
+    .chat-item.active .chat-item-dot { background: var(--accent); }
+
+    .chat-item-text {
+      font-size: 13px;
+      color: var(--muted);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .history-item.active .history-item-text { color: var(--text-primary); }
+
+    .chat-item.active .chat-item-text { color: var(--text); }
 
     .sidebar-footer {
-      padding: 16px 20px;
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      padding: 16px 22px;
       border-top: 1px solid var(--border);
-    }
-    .model-badge {
-      display: flex; align-items: center; gap: 8px;
-      padding: 8px 12px;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      cursor: pointer;
-      transition: border-color 0.2s;
-    }
-    .model-badge:hover { border-color: var(--border-glow); }
-    .model-badge-dot {
-      width: 7px; height: 7px;
-      border-radius: 50%;
-      background: var(--teal);
-      box-shadow: 0 0 6px var(--teal);
-      animation: pulse-dot 2s ease-in-out infinite;
-    }
-    .model-badge-name {
-      font-family: 'DM Mono', monospace;
-      font-size: 11px;
-      color: var(--text-secondary);
-      flex: 1;
-    }
-    .model-badge-name strong { color: var(--teal); font-weight: 500; }
-    .model-badge-arrow {
-      color: var(--text-muted);
-      font-size: 10px;
+      background: var(--surface);
+      z-index: 3;
     }
 
-    /* ── 메인 채팅 영역 ── */
-    .chat-main {
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      overflow: hidden;
-    }
-
-    /* ── 헤더 ── */
-    .chat-header {
-      padding: 18px 32px;
-      border-bottom: 1px solid var(--border);
+    .user-profile {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      background: rgba(8,15,30,0.8);
-      backdrop-filter: blur(12px);
+      gap: 10px;
+    }
+
+    .avatar {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent3), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-head);
+      font-size: 12px;
+      font-weight: 700;
+      color: #fff;
       flex-shrink: 0;
     }
 
-    .chat-title {
-      font-family: 'Syne', sans-serif;
-      font-weight: 600;
-      font-size: 15px;
-      color: var(--text-primary);
-      letter-spacing: 0.02em;
+    .user-info { flex: 1; min-width: 0; }
+    .user-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
-    .chat-subtitle {
-      font-family: 'DM Mono', monospace;
-      font-size: 11px;
-      color: var(--text-muted);
-      margin-top: 2px;
+    .user-plan {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--accent);
+      letter-spacing: 0.06em;
+    }
+
+    /* ─── MAIN AREA ────────────────────────────────────────── */
+    .main {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      background: var(--bg);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* ambient glow */
+    .main::before {
+      content: '';
+      position: absolute;
+      top: -200px; left: 50%;
+      transform: translateX(-50%);
+      width: 600px; height: 400px;
+      background: radial-gradient(ellipse, rgba(232,255,71,0.04) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* ─── TOP BAR ──────────────────────────────────────────── */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 28px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .model-selector {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 14px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+
+    .model-selector:hover { border-color: var(--border-hi); }
+
+    .model-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 6px var(--accent);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; box-shadow: 0 0 6px var(--accent); }
+      50% { opacity: 0.6; box-shadow: 0 0 12px var(--accent); }
+    }
+
+    .model-name {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text);
       letter-spacing: 0.04em;
     }
 
-    .header-actions {
-      display: flex; gap: 8px;
+    .model-arrow {
+      color: var(--muted);
+      font-size: 10px;
     }
+
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
     .icon-btn {
       width: 34px; height: 34px;
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
+      border-radius: 8px;
       background: transparent;
-      color: var(--text-muted);
+      border: 1px solid var(--border);
+      color: var(--muted);
       cursor: pointer;
       display: flex; align-items: center; justify-content: center;
       transition: all 0.2s;
     }
+
     .icon-btn:hover {
-      border-color: var(--border-glow);
-      color: var(--accent);
-      background: var(--accent-glow);
+      background: var(--panel);
+      color: var(--text);
+      border-color: var(--border-hi);
     }
 
-    /* ── 메시지 영역 ── */
-    .messages-wrap {
+    .icon-btn svg { width: 15px; height: 15px; }
+
+    /* ─── MESSAGES ─────────────────────────────────────────── */
+    .messages {
       flex: 1;
       overflow-y: auto;
       padding: 32px 0;
       scrollbar-width: thin;
       scrollbar-color: var(--border) transparent;
     }
-    .messages-wrap::-webkit-scrollbar { width: 5px; }
-    .messages-wrap::-webkit-scrollbar-track { background: transparent; }
-    .messages-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
-    .messages-inner {
+    .messages::-webkit-scrollbar { width: 4px; }
+    .messages::-webkit-scrollbar-track { background: transparent; }
+    .messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    .message-wrap {
       max-width: 760px;
       margin: 0 auto;
-      padding: 0 32px;
-      display: flex;
-      flex-direction: column;
-      gap: 28px;
+      padding: 0 28px;
     }
 
-    /* ── 웰컴 화면 ── */
+    /* ─── WELCOME STATE ────────────────────────────────────── */
     .welcome {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
       text-align: center;
-      padding: 60px 0 20px;
-      animation: fade-up 0.6s ease both;
+      padding: 40px 28px;
+      animation: fadeUp 0.6s ease both;
     }
-    @keyframes fade-up {
+
+    @keyframes fadeUp {
       from { opacity: 0; transform: translateY(20px); }
       to   { opacity: 1; transform: translateY(0); }
     }
 
     .welcome-icon {
       width: 64px; height: 64px;
-      margin: 0 auto 24px;
-      border: 1.5px solid var(--border-glow);
-      border-radius: 18px;
+      background: linear-gradient(135deg, rgba(232,255,71,0.15), rgba(71,255,232,0.1));
+      border: 1px solid rgba(232,255,71,0.2);
+      border-radius: 20px;
       display: flex; align-items: center; justify-content: center;
-      background: var(--accent-dim);
-      box-shadow: 0 0 32px rgba(56,189,248,0.12), inset 0 0 16px rgba(56,189,248,0.04);
+      margin-bottom: 24px;
       position: relative;
     }
-    .welcome-icon::before {
+
+    .welcome-icon::after {
       content: '';
       position: absolute; inset: -1px;
-      border-radius: 18px;
-      background: linear-gradient(135deg, rgba(56,189,248,0.3), transparent 50%, rgba(45,212,191,0.2));
-      z-index: -1;
+      border-radius: 20px;
+      background: linear-gradient(135deg, rgba(232,255,71,0.3), transparent, rgba(71,255,232,0.2));
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      padding: 1px;
     }
+
+    .welcome-icon svg { width: 28px; height: 28px; color: var(--accent); }
 
     .welcome-title {
-      font-family: 'Syne', sans-serif;
-      font-weight: 700;
-      font-size: 28px;
-      letter-spacing: -0.01em;
+      font-family: var(--font-head);
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: #fff;
       margin-bottom: 10px;
-      background: linear-gradient(135deg, #e2eaf4 30%, var(--accent) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    .welcome-sub {
-      font-size: 14px;
-      color: var(--text-secondary);
-      line-height: 1.6;
-      max-width: 400px;
-      margin: 0 auto 36px;
+      line-height: 1.1;
     }
 
-    .suggestion-grid {
+    .welcome-title em {
+      font-style: normal;
+      color: var(--accent);
+    }
+
+    .welcome-sub {
+      font-size: 15px;
+      color: var(--muted);
+      max-width: 400px;
+      margin-bottom: 40px;
+      line-height: 1.6;
+    }
+
+    .suggestions {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 10px;
-      max-width: 520px;
-      margin: 0 auto;
+      width: 100%;
+      max-width: 560px;
     }
+
     .suggestion-card {
       padding: 14px 16px;
-      background: var(--bg-card);
+      background: var(--panel);
       border: 1px solid var(--border);
-      border-radius: var(--radius-md);
+      border-radius: var(--radius);
       cursor: pointer;
       text-align: left;
-      transition: all 0.2s ease;
-      animation: fade-up 0.6s ease both;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
     }
-    .suggestion-card:nth-child(1) { animation-delay: 0.1s; }
-    .suggestion-card:nth-child(2) { animation-delay: 0.15s; }
-    .suggestion-card:nth-child(3) { animation-delay: 0.2s; }
-    .suggestion-card:nth-child(4) { animation-delay: 0.25s; }
+
+    .suggestion-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
     .suggestion-card:hover {
-      border-color: var(--border-glow);
-      background: var(--accent-glow);
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(56,189,248,0.08);
+      border-color: var(--border-hi);
+      background: #1a1a24;
+      transform: translateY(-1px);
     }
+
+    .suggestion-card:hover::before { opacity: 1; }
+
     .suggestion-icon {
       font-size: 18px;
       margin-bottom: 6px;
     }
+
     .suggestion-title {
-      font-size: 12.5px;
-      font-weight: 500;
-      color: var(--text-primary);
+      font-family: var(--font-head);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
       margin-bottom: 3px;
     }
+
     .suggestion-desc {
-      font-size: 11.5px;
-      color: var(--text-muted);
+      font-size: 12px;
+      color: var(--muted);
       line-height: 1.4;
     }
 
-    /* ── 메시지 버블 ── */
-    .message {
+    /* ─── MESSAGE BUBBLES ──────────────────────────────────── */
+    .msg {
       display: flex;
       gap: 14px;
-      animation: fade-up 0.35s ease both;
+      margin-bottom: 28px;
+      animation: msgIn 0.3s ease both;
     }
-    .message.user { flex-direction: row-reverse; }
 
-    .avatar {
+    @keyframes msgIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .msg.user { flex-direction: row-reverse; }
+
+    .msg-avatar {
       width: 32px; height: 32px;
-      border-radius: 9px;
+      border-radius: 50%;
       flex-shrink: 0;
       display: flex; align-items: center; justify-content: center;
       font-size: 13px;
-      font-weight: 600;
+      font-weight: 700;
+      font-family: var(--font-head);
     }
-    .avatar.ai {
-      background: var(--accent-dim);
-      border: 1px solid var(--border-glow);
+
+    .msg.ai .msg-avatar {
+      background: linear-gradient(135deg, rgba(232,255,71,0.2), rgba(71,255,232,0.15));
+      border: 1px solid rgba(232,255,71,0.2);
       color: var(--accent);
-      font-family: 'DM Mono', monospace;
-      font-size: 11px;
-      box-shadow: 0 0 12px rgba(56,189,248,0.1);
     }
-    .avatar.user {
-      background: linear-gradient(135deg, #1e3a5f, #0f2744);
-      border: 1px solid rgba(56,189,248,0.2);
-      color: var(--accent);
-      font-family: 'Syne', sans-serif;
+
+    .msg.user .msg-avatar {
+      background: linear-gradient(135deg, var(--accent3), var(--accent2));
+      color: #fff;
+    }
+
+    .msg-body { flex: 1; min-width: 0; }
+
+    .msg-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .msg.user .msg-meta { flex-direction: row-reverse; }
+
+    .msg-name {
+      font-family: var(--font-head);
       font-size: 12px;
       font-weight: 700;
-    }
-
-    .bubble-wrap {
-      flex: 1;
-      max-width: calc(100% - 46px);
-    }
-    .message.user .bubble-wrap { display: flex; flex-direction: column; align-items: flex-end; }
-
-    .bubble-meta {
-      font-family: 'DM Mono', monospace;
-      font-size: 10px;
-      color: var(--text-muted);
-      margin-bottom: 6px;
       letter-spacing: 0.04em;
+      color: var(--text);
     }
-    .message.user .bubble-meta { text-align: right; }
 
-    .bubble {
-      padding: 14px 18px;
-      border-radius: var(--radius-lg);
-      line-height: 1.7;
-      font-size: 14px;
-      position: relative;
+    .msg-time {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--muted);
     }
-    .bubble.ai {
+
+    .msg-bubble {
+      padding: 14px 18px;
+      border-radius: var(--radius);
+      font-size: 14.5px;
+      line-height: 1.7;
+      max-width: 85%;
+    }
+
+    .msg.ai .msg-bubble {
       background: var(--ai-bg);
       border: 1px solid var(--border);
-      border-radius: var(--radius-lg) var(--radius-lg) var(--radius-lg) 4px;
-      color: var(--text-primary);
+      color: var(--text);
+      border-radius: 4px var(--radius) var(--radius) var(--radius);
     }
-    .bubble.user {
+
+    .msg.user .msg-bubble {
       background: var(--user-bg);
-      border: 1px solid rgba(56,189,248,0.18);
-      border-radius: var(--radius-lg) var(--radius-lg) 4px var(--radius-lg);
-      color: var(--text-primary);
-      max-width: 480px;
+      border: 1px solid var(--border-hi);
+      color: var(--text);
+      border-radius: var(--radius) 4px var(--radius) var(--radius);
+      margin-left: auto;
     }
 
-    .bubble.ai code {
-      font-family: 'DM Mono', monospace;
-      font-size: 12.5px;
-      background: rgba(56,189,248,0.08);
-      border: 1px solid rgba(56,189,248,0.15);
-      padding: 1px 6px;
-      border-radius: 4px;
-      color: var(--accent);
-    }
-
-    .bubble.ai pre {
-      background: rgba(5,12,24,0.8);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      padding: 14px 16px;
-      margin: 10px 0;
-      overflow-x: auto;
-      font-family: 'DM Mono', monospace;
-      font-size: 12.5px;
-      line-height: 1.6;
-      color: #a8d8f0;
-    }
-
-    .bubble.ai strong { color: var(--accent); font-weight: 500; }
-
-    /* 타이핑 커서 */
-    .typing-cursor {
-      display: inline-block;
-      width: 2px; height: 14px;
-      background: var(--accent);
-      margin-left: 2px;
-      vertical-align: middle;
-      animation: blink 0.9s step-end infinite;
-    }
-    @keyframes blink {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0; }
-    }
-
-    /* 로딩 점 */
-    .thinking {
-      display: flex; align-items: center; gap: 5px;
-      padding: 14px 18px;
-    }
-    .thinking-dot {
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: var(--accent);
-      animation: thinking-bounce 1.2s ease-in-out infinite;
-    }
-    .thinking-dot:nth-child(2) { animation-delay: 0.15s; background: var(--teal); }
-    .thinking-dot:nth-child(3) { animation-delay: 0.3s; background: var(--accent); opacity: 0.6; }
-    @keyframes thinking-bounce {
-      0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
-      40% { transform: translateY(-6px); opacity: 1; }
-    }
-
-    /* 메시지 액션 */
-    .bubble-actions {
-      display: flex; gap: 4px;
+    .msg-actions {
+      display: flex;
+      gap: 4px;
       margin-top: 8px;
       opacity: 0;
       transition: opacity 0.2s;
     }
-    .message:hover .bubble-actions { opacity: 1; }
-    .bubble-action {
+
+    .msg:hover .msg-actions { opacity: 1; }
+    .msg.user .msg-actions { flex-direction: row-reverse; }
+
+    .msg-action-btn {
       padding: 4px 8px;
       background: transparent;
       border: 1px solid var(--border);
-      border-radius: 5px;
-      color: var(--text-muted);
-      font-family: 'DM Mono', monospace;
+      border-radius: 6px;
+      color: var(--muted);
+      font-family: var(--font-mono);
       font-size: 10px;
       cursor: pointer;
       display: flex; align-items: center; gap: 4px;
       transition: all 0.15s;
     }
-    .bubble-action:hover {
-      border-color: var(--border-glow);
-      color: var(--accent);
-      background: var(--accent-glow);
+
+    .msg-action-btn:hover {
+      background: var(--panel);
+      color: var(--text);
+      border-color: var(--border-hi);
     }
 
-    /* ── 입력 영역 ── */
+    .msg-action-btn svg { width: 11px; height: 11px; }
+
+    /* code block */
+    .code-block {
+      background: #0d0d14;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin: 10px 0;
+      overflow: hidden;
+    }
+
+    .code-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .code-lang {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--accent);
+      letter-spacing: 0.06em;
+    }
+
+    .code-copy {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--muted);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 4px;
+      transition: color 0.15s;
+    }
+
+    .code-copy:hover { color: var(--text); }
+
+    .code-block pre {
+      padding: 14px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.6;
+      color: #c8d3f5;
+      overflow-x: auto;
+    }
+
+    .code-block pre .kw { color: var(--accent3); }
+    .code-block pre .fn { color: var(--accent2); }
+    .code-block pre .str { color: #c3e88d; }
+    .code-block pre .cm { color: var(--muted); font-style: italic; }
+
+    /* typing indicator */
+    .typing-indicator {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 14px 18px;
+      background: var(--ai-bg);
+      border: 1px solid var(--border);
+      border-radius: 4px var(--radius) var(--radius) var(--radius);
+      width: fit-content;
+    }
+
+    .typing-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--muted);
+      animation: typingBounce 1.2s ease-in-out infinite;
+    }
+
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typingBounce {
+      0%, 60%, 100% { transform: translateY(0); background: var(--muted); }
+      30% { transform: translateY(-5px); background: var(--accent); }
+    }
+
+    /* ─── INPUT AREA ───────────────────────────────────────── */
     .input-area {
-      padding: 20px 32px 24px;
-      background: rgba(8,15,30,0.9);
-      backdrop-filter: blur(16px);
-      border-top: 1px solid var(--border);
+      padding: 16px 28px 24px;
       flex-shrink: 0;
+      position: relative;
+    }
+
+    .input-area::before {
+      content: '';
+      position: absolute;
+      top: -40px; left: 0; right: 0;
+      height: 40px;
+      background: linear-gradient(to top, var(--bg), transparent);
+      pointer-events: none;
     }
 
     .input-container {
       max-width: 760px;
       margin: 0 auto;
-    }
-
-    .input-box {
-      background: var(--bg-input);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 14px 16px;
-      display: flex;
-      align-items: flex-end;
-      gap: 12px;
+      background: var(--panel);
+      border: 1px solid var(--border-hi);
+      border-radius: 18px;
+      padding: 14px 16px 10px;
       transition: border-color 0.2s, box-shadow 0.2s;
       position: relative;
     }
-    .input-box:focus-within {
-      border-color: var(--border-glow);
-      box-shadow: 0 0 0 3px rgba(56,189,248,0.06), 0 0 24px rgba(56,189,248,0.06);
+
+    .input-container:focus-within {
+      border-color: rgba(232,255,71,0.3);
+      box-shadow: 0 0 0 3px rgba(232,255,71,0.05), 0 8px 32px rgba(0,0,0,0.3);
     }
 
-    .input-left {
-      display: flex; gap: 6px; align-items: flex-end;
-    }
-    .attach-btn {
-      width: 30px; height: 30px;
-      border: 1px solid var(--border);
-      border-radius: 7px;
-      background: transparent;
-      color: var(--text-muted);
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      transition: all 0.15s;
-      flex-shrink: 0;
-    }
-    .attach-btn:hover {
-      border-color: var(--border-glow);
-      color: var(--accent);
-      background: var(--accent-glow);
-    }
-
-    .input-field {
-      flex: 1;
+    .input-textarea {
+      width: 100%;
       background: transparent;
       border: none;
       outline: none;
-      color: var(--text-primary);
-      font-family: 'Noto Sans KR', sans-serif;
-      font-size: 14px;
-      font-weight: 300;
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 14.5px;
       line-height: 1.6;
       resize: none;
       min-height: 24px;
       max-height: 160px;
       overflow-y: auto;
-      scrollbar-width: thin;
-      scrollbar-color: var(--border) transparent;
+      scrollbar-width: none;
     }
-    .input-field::placeholder { color: var(--text-muted); }
 
-    .send-btn {
-      width: 36px; height: 36px;
-      border-radius: 9px;
-      border: none;
-      background: linear-gradient(135deg, var(--accent), var(--teal));
-      color: var(--bg-deep);
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-      transition: all 0.2s ease;
-      box-shadow: 0 0 16px rgba(56,189,248,0.25);
-    }
-    .send-btn:hover {
-      transform: scale(1.06);
-      box-shadow: 0 0 24px rgba(56,189,248,0.4);
-    }
-    .send-btn:active { transform: scale(0.96); }
-    .send-btn:disabled {
-      background: var(--bg-card);
-      color: var(--text-muted);
-      box-shadow: none;
-      cursor: not-allowed;
-      transform: none;
+    .input-textarea::-webkit-scrollbar { display: none; }
+
+    .input-textarea::placeholder {
+      color: var(--muted);
     }
 
     .input-footer {
@@ -646,168 +725,224 @@
       align-items: center;
       justify-content: space-between;
       margin-top: 10px;
-      padding: 0 2px;
     }
-    .input-hint {
-      font-family: 'DM Mono', monospace;
-      font-size: 10px;
-      color: var(--text-muted);
-      letter-spacing: 0.04em;
-    }
-    .input-hint kbd {
-      display: inline-block;
-      padding: 1px 5px;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 3px;
-      font-family: 'DM Mono', monospace;
-      font-size: 9px;
-    }
-    .token-counter {
-      font-family: 'DM Mono', monospace;
-      font-size: 10px;
-      color: var(--text-muted);
-    }
-    .token-counter span { color: var(--teal); }
 
-    /* ── 스크롤 하단 버튼 ── */
-    .scroll-bottom {
-      position: absolute;
-      bottom: 110px;
-      right: 40px;
-      width: 36px; height: 36px;
-      border-radius: 50%;
-      background: var(--bg-card);
-      border: 1px solid var(--border-glow);
-      color: var(--accent);
+    .input-tools {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .tool-btn {
+      width: 30px; height: 30px;
+      border-radius: 8px;
+      background: transparent;
+      border: none;
+      color: var(--muted);
       cursor: pointer;
       display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-      transition: all 0.2s;
-      opacity: 0;
-      pointer-events: none;
+      transition: all 0.15s;
     }
-    .scroll-bottom.visible { opacity: 1; pointer-events: all; }
-    .scroll-bottom:hover { background: var(--accent-dim); transform: translateY(-2px); }
 
-    /* ── 반응형 ── */
+    .tool-btn:hover {
+      background: var(--border);
+      color: var(--text);
+    }
+
+    .tool-btn svg { width: 15px; height: 15px; }
+
+    .input-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .char-count {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    .send-btn {
+      width: 34px; height: 34px;
+      border-radius: 10px;
+      background: var(--accent);
+      border: none;
+      color: #0a0a0f;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+
+    .send-btn:hover {
+      background: #f0ff6a;
+      transform: scale(1.05);
+      box-shadow: 0 4px 16px rgba(232,255,71,0.3);
+    }
+
+    .send-btn:active { transform: scale(0.97); }
+    .send-btn svg { width: 15px; height: 15px; }
+
+    .send-btn:disabled {
+      background: var(--border);
+      color: var(--muted);
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .input-hint {
+      text-align: center;
+      margin-top: 10px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+    }
+
+    .input-hint kbd {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+    }
+
+    /* ─── SCROLLBAR ────────────────────────────────────────── */
+    .messages::-webkit-scrollbar { width: 4px; }
+    .messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    /* ─── RESPONSIVE ───────────────────────────────────────── */
     @media (max-width: 768px) {
       .app { grid-template-columns: 1fr; }
       .sidebar { display: none; }
-      .messages-inner { padding: 0 16px; }
-      .input-area { padding: 16px; }
-      .chat-header { padding: 14px 16px; }
     }
   </style>
 </head>
 <body>
+
 <div class="app">
 
-  <!-- ── 사이드바 ── -->
+  <!-- ── SIDEBAR ── -->
   <aside class="sidebar">
     <div class="sidebar-header">
       <div class="logo">
-        <div class="logo-mark"></div>
-        <div class="logo-text">SY<span>EON</span></div>
+        <div class="logo-mark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:#0a0a0f">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+            <path d="M2 17l10 5 10-5"/>
+            <path d="M2 12l10 5 10-5"/>
+          </svg>
+        </div>
+        <span class="logo-text">SY<span>EON</span></span>
       </div>
-      <button class="new-chat-btn" onclick="newChat()">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <button class="new-chat-btn" onclick="resetChat()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
         </svg>
-        NEW CONVERSATION
+        새 대화 시작
       </button>
     </div>
 
     <div class="sidebar-section">
-      <div class="sidebar-section-label">Recent</div>
+      <div class="sidebar-label">최근 대화</div>
     </div>
 
-    <div class="chat-history" id="chatHistory">
-      <div class="history-item active">
-        <div class="history-item-dot"></div>
-        <div class="history-item-text">LLM 챗봇 UI 디자인 요청</div>
+    <div class="chat-list" id="chatList">
+      <div class="chat-item active">
+        <div class="chat-item-dot"></div>
+        <div class="chat-item-text">LLM 챗봇 UI 디자인 요청</div>
       </div>
-      <div class="history-item">
-        <div class="history-item-dot"></div>
-        <div class="history-item-text">Python 코드 리뷰 및 최적화</div>
+      <div class="chat-item">
+        <div class="chat-item-dot"></div>
+        <div class="chat-item-text">Python 코드 리뷰 및 최적화</div>
       </div>
-      <div class="history-item">
-        <div class="history-item-dot"></div>
-        <div class="history-item-text">React 컴포넌트 설계 패턴</div>
+      <div class="chat-item">
+        <div class="chat-item-dot"></div>
+        <div class="chat-item-text">마케팅 카피라이팅 작성</div>
       </div>
-      <div class="history-item">
-        <div class="history-item-dot"></div>
-        <div class="history-item-text">데이터베이스 스키마 설계</div>
+      <div class="chat-item">
+        <div class="chat-item-dot"></div>
+        <div class="chat-item-text">React 컴포넌트 설계 패턴</div>
       </div>
-      <div class="history-item">
-        <div class="history-item-dot"></div>
-        <div class="history-item-text">API 문서 작성 가이드</div>
+      <div class="chat-item">
+        <div class="chat-item-dot"></div>
+        <div class="chat-item-text">데이터 분석 보고서 초안</div>
       </div>
     </div>
 
     <div class="sidebar-footer">
-      <div class="model-badge">
-        <div class="model-badge-dot"></div>
-        <div class="model-badge-name"><strong>GPT-4o</strong> · Active</div>
-        <div class="model-badge-arrow">⌄</div>
+      <div class="user-profile">
+        <div class="avatar">서</div>
+        <div class="user-info">
+          <div class="user-name">서연</div>
+          <div class="user-plan">PRO PLAN</div>
+        </div>
       </div>
     </div>
   </aside>
 
-  <!-- ── 메인 채팅 ── -->
-  <main class="chat-main">
-    <header class="chat-header">
-      <div>
-        <div class="chat-title">New Conversation</div>
-        <div class="chat-subtitle">GPT-4o · context 128k · streaming on</div>
+  <!-- ── MAIN ── -->
+  <main class="main">
+
+    <!-- Top Bar -->
+    <div class="topbar">
+      <div class="model-selector">
+        <div class="model-dot"></div>
+        <span class="model-name">SYEON-4o</span>
+        <span class="model-arrow">▾</span>
       </div>
-      <div class="header-actions">
-        <button class="icon-btn" title="설정">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-            <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-          </svg>
-        </button>
+      <div class="topbar-actions">
         <button class="icon-btn" title="공유">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
             <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
           </svg>
         </button>
+        <button class="icon-btn" title="설정">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
       </div>
-    </header>
+    </div>
 
-    <div class="messages-wrap" id="messagesWrap">
-      <div class="messages-inner" id="messagesInner">
+    <!-- Messages -->
+    <div class="messages" id="messages">
+      <div class="message-wrap" id="messageWrap">
 
-        <!-- 웰컴 화면 -->
+        <!-- Welcome Screen -->
         <div class="welcome" id="welcomeScreen">
           <div class="welcome-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="1.5">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
             </svg>
           </div>
-          <div class="welcome-title">무엇을 도와드릴까요?</div>
-          <div class="welcome-sub">질문하거나 아이디어를 공유해보세요.<br/>코드 작성, 분석, 창작 등 무엇이든 함께합니다.</div>
-          <div class="suggestion-grid">
-            <div class="suggestion-card" onclick="sendSuggestion('Python으로 REST API 서버를 만드는 방법을 알려줘')">
+          <h1 class="welcome-title">안녕하세요,<br/>저는 <em>서연</em>이에요</h1>
+          <p class="welcome-sub">무엇이든 물어보세요. 코딩, 글쓰기, 분석, 아이디어 — 함께 해결해 드릴게요.</p>
+          <div class="suggestions">
+            <div class="suggestion-card" onclick="fillInput('Python으로 REST API를 만드는 방법을 알려주세요')">
               <div class="suggestion-icon">⚡</div>
               <div class="suggestion-title">코드 작성</div>
-              <div class="suggestion-desc">Python REST API 서버 만들기</div>
+              <div class="suggestion-desc">Python REST API 만들기</div>
             </div>
-            <div class="suggestion-card" onclick="sendSuggestion('트랜스포머 아키텍처의 어텐션 메커니즘을 설명해줘')">
-              <div class="suggestion-icon">🧠</div>
-              <div class="suggestion-title">개념 설명</div>
-              <div class="suggestion-desc">트랜스포머 어텐션 메커니즘</div>
-            </div>
-            <div class="suggestion-card" onclick="sendSuggestion('이 코드의 시간 복잡도를 분석하고 최적화 방법을 제안해줘')">
-              <div class="suggestion-icon">🔍</div>
-              <div class="suggestion-title">코드 분석</div>
-              <div class="suggestion-desc">시간 복잡도 분석 및 최적화</div>
-            </div>
-            <div class="suggestion-card" onclick="sendSuggestion('스타트업 아이디어를 위한 비즈니스 플랜을 작성해줘')">
+            <div class="suggestion-card" onclick="fillInput('마케팅 이메일 카피를 작성해주세요')">
               <div class="suggestion-icon">✍️</div>
-              <div class="suggestion-title">문서 작성</div>
-              <div class="suggestion-desc">스타트업 비즈니스 플랜</div>
+              <div class="suggestion-title">글쓰기</div>
+              <div class="suggestion-desc">마케팅 이메일 카피 작성</div>
+            </div>
+            <div class="suggestion-card" onclick="fillInput('이 데이터를 분석하고 인사이트를 도출해주세요')">
+              <div class="suggestion-icon">📊</div>
+              <div class="suggestion-title">데이터 분석</div>
+              <div class="suggestion-desc">인사이트 도출 및 시각화</div>
+            </div>
+            <div class="suggestion-card" onclick="fillInput('새로운 SaaS 제품 아이디어를 브레인스토밍해주세요')">
+              <div class="suggestion-icon">💡</div>
+              <div class="suggestion-title">아이디어</div>
+              <div class="suggestion-desc">SaaS 제품 브레인스토밍</div>
             </div>
           </div>
         </div>
@@ -815,262 +950,284 @@
       </div>
     </div>
 
-    <!-- 스크롤 하단 버튼 -->
-    <button class="scroll-bottom" id="scrollBottomBtn" onclick="scrollToBottom()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-        <polyline points="6 9 12 15 18 9"/>
-      </svg>
-    </button>
-
-    <!-- 입력 영역 -->
+    <!-- Input Area -->
     <div class="input-area">
       <div class="input-container">
-        <div class="input-box">
-          <div class="input-left">
-            <button class="attach-btn" title="파일 첨부">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <textarea
+          class="input-textarea"
+          id="inputBox"
+          placeholder="메시지를 입력하세요..."
+          rows="1"
+          onInput="autoResize(this); updateCharCount(this)"
+          onKeydown="handleKey(event)"
+        ></textarea>
+        <div class="input-footer">
+          <div class="input-tools">
+            <button class="tool-btn" title="파일 첨부">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
               </svg>
             </button>
+            <button class="tool-btn" title="이미지">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+              </svg>
+            </button>
+            <button class="tool-btn" title="웹 검색">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+            </button>
           </div>
-          <textarea
-            class="input-field"
-            id="inputField"
-            placeholder="메시지를 입력하세요..."
-            rows="1"
-            onkeydown="handleKeyDown(event)"
-            oninput="autoResize(this); updateCounter(this)"
-          ></textarea>
-          <button class="send-btn" id="sendBtn" onclick="sendMessage()" disabled>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-            </svg>
-          </button>
-        </div>
-        <div class="input-footer">
-          <div class="input-hint"><kbd>Enter</kbd> 전송 &nbsp;·&nbsp; <kbd>Shift</kbd>+<kbd>Enter</kbd> 줄바꿈</div>
-          <div class="token-counter" id="tokenCounter"><span>0</span> / 4096 tokens</div>
+          <div class="input-right">
+            <span class="char-count" id="charCount">0</span>
+            <button class="send-btn" id="sendBtn" onclick="sendMessage()" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
+      <div class="input-hint">
+        <kbd>Enter</kbd> 전송 &nbsp;·&nbsp; <kbd>Shift+Enter</kbd> 줄바꿈
+      </div>
     </div>
+
   </main>
 </div>
 
 <script>
-  const inputField = document.getElementById('inputField');
-  const sendBtn = document.getElementById('sendBtn');
-  const messagesInner = document.getElementById('messagesInner');
-  const messagesWrap = document.getElementById('messagesWrap');
-  const welcomeScreen = document.getElementById('welcomeScreen');
-  const scrollBottomBtn = document.getElementById('scrollBottomBtn');
+  const inputBox  = document.getElementById('inputBox');
+  const sendBtn   = document.getElementById('sendBtn');
+  const msgWrap   = document.getElementById('messageWrap');
+  const welcome   = document.getElementById('welcomeScreen');
+  const charCount = document.getElementById('charCount');
 
-  let isGenerating = false;
-  let messageCount = 0;
+  let isTyping = false;
 
-  // 입력 감지
-  inputField.addEventListener('input', () => {
-    sendBtn.disabled = inputField.value.trim() === '' || isGenerating;
-  });
-
+  /* ── auto resize textarea ── */
   function autoResize(el) {
     el.style.height = 'auto';
     el.style.height = Math.min(el.scrollHeight, 160) + 'px';
   }
 
-  function updateCounter(el) {
-    const approxTokens = Math.ceil(el.value.length / 3.5);
-    const counter = document.getElementById('tokenCounter');
-    counter.innerHTML = `<span>${approxTokens}</span> / 4096 tokens`;
+  function updateCharCount(el) {
+    const len = el.value.length;
+    charCount.textContent = len;
+    sendBtn.disabled = len === 0 || isTyping;
   }
 
-  function handleKeyDown(e) {
+  function handleKey(e) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (!sendBtn.disabled) sendMessage();
     }
   }
 
-  function scrollToBottom(smooth = true) {
-    messagesWrap.scrollTo({ top: messagesWrap.scrollHeight, behavior: smooth ? 'smooth' : 'instant' });
+  function fillInput(text) {
+    inputBox.value = text;
+    autoResize(inputBox);
+    updateCharCount(inputBox);
+    inputBox.focus();
   }
 
-  messagesWrap.addEventListener('scroll', () => {
-    const distFromBottom = messagesWrap.scrollHeight - messagesWrap.scrollTop - messagesWrap.clientHeight;
-    scrollBottomBtn.classList.toggle('visible', distFromBottom > 120);
-  });
-
-  function sendSuggestion(text) {
-    inputField.value = text;
-    autoResize(inputField);
-    sendBtn.disabled = false;
-    sendMessage();
+  function resetChat() {
+    msgWrap.innerHTML = '';
+    msgWrap.appendChild(welcome);
+    welcome.style.display = 'flex';
+    inputBox.value = '';
+    autoResize(inputBox);
+    updateCharCount(inputBox);
   }
 
-  function newChat() {
-    messagesInner.innerHTML = '';
-    const welcome = document.createElement('div');
-    welcome.className = 'welcome';
-    welcome.id = 'welcomeScreen';
-    welcome.innerHTML = `
-      <div class="welcome-icon">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="1.5">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-        </svg>
-      </div>
-      <div class="welcome-title">무엇을 도와드릴까요?</div>
-      <div class="welcome-sub">질문하거나 아이디어를 공유해보세요.<br/>코드 작성, 분석, 창작 등 무엇이든 함께합니다.</div>
-    `;
-    messagesInner.appendChild(welcome);
-    messageCount = 0;
-  }
+  /* ── send message ── */
+  function sendMessage() {
+    const text = inputBox.value.trim();
+    if (!text || isTyping) return;
 
-  async function sendMessage() {
-    const text = inputField.value.trim();
-    if (!text || isGenerating) return;
+    welcome.style.display = 'none';
 
-    // 웰컴 화면 제거
-    const ws = document.getElementById('welcomeScreen');
-    if (ws) ws.remove();
+    appendMessage('user', text);
 
-    // 사용자 메시지 추가
-    appendUserMessage(text);
-    inputField.value = '';
-    inputField.style.height = 'auto';
-    document.getElementById('tokenCounter').innerHTML = '<span>0</span> / 4096 tokens';
+    inputBox.value = '';
+    autoResize(inputBox);
+    updateCharCount(inputBox);
     sendBtn.disabled = true;
-    isGenerating = true;
-    messageCount++;
 
-    scrollToBottom();
-
-    // AI 응답 시뮬레이션
-    await simulateAIResponse(text);
-    isGenerating = false;
-    sendBtn.disabled = inputField.value.trim() === '';
+    showTyping();
+    setTimeout(() => {
+      removeTyping();
+      const reply = getReply(text);
+      appendMessage('ai', reply.text, reply.code);
+      isTyping = false;
+      updateCharCount(inputBox);
+    }, 1400 + Math.random() * 800);
   }
 
-  function appendUserMessage(text) {
+  /* ── append message ── */
+  function appendMessage(role, text, code) {
     const now = new Date();
-    const timeStr = now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+    const time = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
 
     const msg = document.createElement('div');
-    msg.className = 'message user';
-    msg.innerHTML = `
-      <div class="avatar user">나</div>
-      <div class="bubble-wrap">
-        <div class="bubble-meta">${timeStr}</div>
-        <div class="bubble user">${escapeHtml(text)}</div>
-      </div>
-    `;
-    messagesInner.appendChild(msg);
-  }
+    msg.className = `msg ${role}`;
 
-  async function simulateAIResponse(userText) {
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+    const avatarLabel = role === 'ai' ? 'AI' : '나';
+    const nameLabel   = role === 'ai' ? 'SYEON AI' : '나';
 
-    // 생각 중 표시
-    const thinkingEl = document.createElement('div');
-    thinkingEl.className = 'message';
-    thinkingEl.innerHTML = `
-      <div class="avatar ai">AI</div>
-      <div class="bubble-wrap">
-        <div class="bubble-meta">${timeStr}</div>
-        <div class="bubble ai">
-          <div class="thinking">
-            <div class="thinking-dot"></div>
-            <div class="thinking-dot"></div>
-            <div class="thinking-dot"></div>
+    let codeHTML = '';
+    if (code) {
+      codeHTML = `
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang">${code.lang}</span>
+            <button class="code-copy" onclick="copyCode(this)">복사</button>
           </div>
+          <pre>${code.content}</pre>
+        </div>`;
+    }
+
+    msg.innerHTML = `
+      <div class="msg-avatar">${avatarLabel}</div>
+      <div class="msg-body">
+        <div class="msg-meta">
+          <span class="msg-name">${nameLabel}</span>
+          <span class="msg-time">${time}</span>
         </div>
-      </div>
-    `;
-    messagesInner.appendChild(thinkingEl);
-    scrollToBottom();
+        <div class="msg-bubble">${text}${codeHTML}</div>
+        <div class="msg-actions">
+          ${role === 'ai' ? `
+            <button class="msg-action-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              좋아요
+            </button>
+            <button class="msg-action-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              복사
+            </button>
+            <button class="msg-action-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.51"/></svg>
+              재생성
+            </button>
+          ` : ''}
+        </div>
+      </div>`;
 
-    await sleep(900 + Math.random() * 600);
-
-    // 응답 선택
-    const response = getAIResponse(userText);
-
-    // 타이핑 효과로 교체
-    const bubble = thinkingEl.querySelector('.bubble');
-    bubble.innerHTML = '<span class="typing-cursor"></span>';
-
-    let displayed = '';
-    const chars = response.split('');
-    const speed = Math.max(8, Math.min(25, 2000 / chars.length));
-
-    for (let i = 0; i < chars.length; i++) {
-      displayed += chars[i];
-      bubble.innerHTML = renderMarkdown(displayed) + '<span class="typing-cursor"></span>';
-      if (i % 3 === 0) scrollToBottom();
-      await sleep(speed + (Math.random() * 6 - 3));
-    }
-
-    // 커서 제거 + 액션 버튼 추가
-    bubble.innerHTML = renderMarkdown(response);
-    const bw = thinkingEl.querySelector('.bubble-wrap');
-    bw.innerHTML += `
-      <div class="bubble-actions">
-        <button class="bubble-action" onclick="copyText(this, \`${response.replace(/`/g,'\\`')}\`)">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-          </svg>
-          복사
-        </button>
-        <button class="bubble-action">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/>
-          </svg>
-          재생성
-        </button>
-        <button class="bubble-action">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/>
-            <path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/>
-          </svg>
-          좋아요
-        </button>
-      </div>
-    `;
+    msgWrap.appendChild(msg);
     scrollToBottom();
   }
 
-  function getAIResponse(text) {
-    const lower = text.toLowerCase();
-    if (lower.includes('python') || lower.includes('api') || lower.includes('코드')) {
-      return `물론이죠! Python으로 간단한 REST API 서버를 만드는 방법을 알려드릴게요.\n\n**FastAPI**를 사용하면 빠르고 현대적인 API를 쉽게 만들 수 있습니다.\n\n먼저 패키지를 설치합니다:\n\`\`\`bash\npip install fastapi uvicorn\n\`\`\`\n\n그리고 \`main.py\` 파일을 작성합니다:\n\`\`\`python\nfrom fastapi import FastAPI\n\napp = FastAPI()\n\n@app.get("/")\ndef read_root():\n    return {"message": "Hello, World!"}\n\n@app.get("/items/{item_id}")\ndef read_item(item_id: int, q: str = None):\n    return {"item_id": item_id, "q": q}\n\`\`\`\n\n서버를 실행하려면:\n\`\`\`bash\nuvicorn main:app --reload\n\`\`\`\n\n**주요 특징:**\n- **자동 문서화**: \`/docs\`에서 Swagger UI 확인 가능\n- **타입 힌팅**: Python 타입 힌트로 자동 검증\n- **비동기 지원**: \`async/await\` 완벽 지원\n\n더 복잡한 기능이 필요하시면 말씀해 주세요! 🚀`;
-    } else if (lower.includes('트랜스포머') || lower.includes('어텐션') || lower.includes('llm')) {
-      return `트랜스포머의 **어텐션 메커니즘**은 현대 LLM의 핵심입니다.\n\n**Self-Attention의 핵심 아이디어:**\n\n입력 시퀀스의 각 토큰이 다른 모든 토큰과 얼마나 관련 있는지를 계산합니다.\n\n**수식으로 표현하면:**\n\`\`\`\nAttention(Q, K, V) = softmax(QKᵀ / √dₖ) · V\n\`\`\`\n\n여기서:\n- **Q (Query)**: "무엇을 찾고 있나?"\n- **K (Key)**: "나는 어떤 정보를 가지고 있나?"\n- **V (Value)**: "실제로 전달할 정보"\n\n**Multi-Head Attention**은 이를 여러 번 병렬로 수행하여 다양한 관점에서 관계를 포착합니다.\n\n이 메커니즘 덕분에 "나는 **은행**에 갔다"에서 '은행'이 금융 기관인지 강둑인지 문맥으로 파악할 수 있습니다. 🧠`;
-    } else {
-      return `안녕하세요! 말씀하신 내용을 잘 이해했습니다.\n\n저는 다양한 방면에서 도움을 드릴 수 있어요:\n\n- **코드 작성 & 디버깅**: Python, JavaScript, TypeScript 등\n- **개념 설명**: 복잡한 기술 개념을 쉽게 풀어드립니다\n- **문서 작성**: 기술 문서, 보고서, 이메일 등\n- **데이터 분석**: SQL, pandas, 시각화 등\n- **아이디어 브레인스토밍**: 창의적인 문제 해결\n\n더 구체적으로 어떤 도움이 필요하신가요? 자세히 알려주시면 더 정확한 답변을 드릴 수 있습니다! ✨`;
-    }
+  /* ── typing indicator ── */
+  let typingEl = null;
+  function showTyping() {
+    isTyping = true;
+    const wrap = document.createElement('div');
+    wrap.className = 'msg ai';
+    wrap.id = 'typingMsg';
+    wrap.innerHTML = `
+      <div class="msg-avatar">AI</div>
+      <div class="msg-body">
+        <div class="msg-meta">
+          <span class="msg-name">SYEON AI</span>
+        </div>
+        <div class="typing-indicator">
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+        </div>
+      </div>`;
+    msgWrap.appendChild(wrap);
+    typingEl = wrap;
+    scrollToBottom();
   }
 
-  function renderMarkdown(text) {
-    return text
-      .replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) =>
-        `<pre><code>${escapeHtml(code.trim())}</code></pre>`)
-      .replace(/`([^`]+)`/g, '<code>$1</code>')
-      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-      .replace(/\n/g, '<br/>');
+  function removeTyping() {
+    if (typingEl) { typingEl.remove(); typingEl = null; }
   }
 
-  function escapeHtml(text) {
-    return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  function scrollToBottom() {
+    const msgs = document.getElementById('messages');
+    msgs.scrollTo({ top: msgs.scrollHeight, behavior: 'smooth' });
   }
 
-  function copyText(btn, text) {
-    navigator.clipboard.writeText(text).then(() => {
-      btn.textContent = '✓ 복사됨';
-      setTimeout(() => {
-        btn.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> 복사`;
-      }, 2000);
+  function copyCode(btn) {
+    const pre = btn.closest('.code-block').querySelector('pre');
+    navigator.clipboard.writeText(pre.innerText).then(() => {
+      btn.textContent = '복사됨!';
+      setTimeout(() => btn.textContent = '복사', 1500);
     });
   }
 
-  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+  /* ── demo replies ── */
+  function getReply(text) {
+    const t = text.toLowerCase();
+    if (t.includes('python') || t.includes('api') || t.includes('코드')) {
+      return {
+        text: '물론이죠! Python으로 간단한 REST API를 만드는 예제를 보여드릴게요. FastAPI를 사용하면 빠르고 직관적으로 구현할 수 있어요.',
+        code: {
+          lang: 'python',
+          content: `<span class="kw">from</span> fastapi <span class="kw">import</span> FastAPI
+<span class="kw">from</span> pydantic <span class="kw">import</span> BaseModel
+
+app = <span class="fn">FastAPI</span>()
+
+<span class="kw">class</span> <span class="fn">Item</span>(BaseModel):
+    name: str
+    price: float
+
+<span class="cm"># GET 엔드포인트</span>
+<span class="kw">@app</span>.get(<span class="str">"/items/{item_id}"</span>)
+<span class="kw">async def</span> <span class="fn">read_item</span>(item_id: int):
+    <span class="kw">return</span> {<span class="str">"id"</span>: item_id, <span class="str">"name"</span>: <span class="str">"example"</span>}
+
+<span class="cm"># POST 엔드포인트</span>
+<span class="kw">@app</span>.post(<span class="str">"/items/"</span>)
+<span class="kw">async def</span> <span class="fn">create_item</span>(item: Item):
+    <span class="kw">return</span> item`
+        }
+      };
+    }
+    if (t.includes('마케팅') || t.includes('이메일') || t.includes('카피')) {
+      return {
+        text: `안녕하세요! 마케팅 이메일 카피를 작성해 드릴게요. 아래는 SaaS 제품을 위한 예시입니다:\n\n<br><br>
+        <strong>제목:</strong> 지금 바로 시작하세요 — 첫 달 무료 🚀<br><br>
+        안녕하세요, [이름]님!<br><br>
+        매일 반복되는 업무에 지치셨나요? <strong>SYEON</strong>은 AI의 힘으로 당신의 생산성을 3배 높여드립니다.<br><br>
+        ✅ 코드 작성 자동화<br>
+        ✅ 문서 요약 및 번역<br>
+        ✅ 데이터 분석 리포트<br><br>
+        지금 가입하면 <strong>첫 달 완전 무료</strong>로 모든 기능을 체험하실 수 있어요.`,
+        code: null
+      };
+    }
+    if (t.includes('분석') || t.includes('데이터')) {
+      return {
+        text: '데이터 분석을 도와드릴게요! 분석하실 데이터를 공유해 주시면 인사이트를 도출하고 시각화 방법도 제안해 드릴 수 있어요. 어떤 형태의 데이터인가요? (CSV, JSON, 직접 입력 등)',
+        code: null
+      };
+    }
+    if (t.includes('아이디어') || t.includes('saas') || t.includes('브레인')) {
+      return {
+        text: `SaaS 아이디어 브레인스토밍을 해볼게요! 🚀<br><br>
+        <strong>1. AI 기반 회의록 자동화</strong><br>
+        회의를 녹음하면 자동으로 요약, 액션 아이템, 담당자를 추출해주는 서비스<br><br>
+        <strong>2. 개인화 학습 플랫폼</strong><br>
+        AI가 학습 패턴을 분석해 최적의 커리큘럼을 실시간으로 조정<br><br>
+        <strong>3. 코드 리뷰 자동화 도구</strong><br>
+        PR이 올라오면 AI가 버그, 보안 취약점, 성능 이슈를 자동 검토<br><br>
+        어떤 분야에 더 관심이 있으신가요? 더 구체적으로 발전시켜 드릴게요!`,
+        code: null
+      };
+    }
+    return {
+      text: `좋은 질문이에요! "<strong>${text.substring(0, 40)}${text.length > 40 ? '...' : ''}</strong>"에 대해 도움을 드릴게요.<br><br>
+      더 구체적인 맥락이나 요구사항을 알려주시면 더 정확하고 유용한 답변을 드릴 수 있어요. 어떤 부분이 가장 궁금하신가요?`,
+      code: null
+    };
+  }
 </script>
 </body>
 </html>

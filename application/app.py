@@ -403,13 +403,6 @@ if prompt := st.chat_input("메시지를 입력하세요."):
         else:
             for plugin in plugin_list:
                 if mode == plugin["name"]:
-                    # Create plugin folder in works if it doesn't exist
-                    works_dir = Path(__file__).resolve().parent.parent / "works"
-                    plugin_works_dir = works_dir / plugin["name"]
-                    if not plugin_works_dir.exists():
-                        plugin_works_dir.mkdir(parents=True)
-                        logger.info(f"Created works dir: {plugin_works_dir}")
-
                     with st.status("thinking...", expanded=True, state="running") as status:
                         containers = {
                             "tools": st.empty(),
@@ -419,7 +412,6 @@ if prompt := st.chat_input("메시지를 입력하세요."):
                         response = asyncio.run(plugin_agent.run_plugin_agent(
                             query=prompt, 
                             plugin_name=plugin["name"],
-                            work_dir=plugin_works_dir,
                             containers=containers))
                         logger.info(f"response: {response}")
                         st.session_state.messages.append({"role": "assistant", "content": response})

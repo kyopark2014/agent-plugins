@@ -6,6 +6,7 @@ import mcp_config
 import chat
 import logging
 import sys
+import langgraph_agent
 
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage, AIMessageChunk
 from langchain_core.tools import tool
@@ -159,7 +160,7 @@ def get_plugin_skills(plugin_name: str) -> list:
     return [{"name": s.name, "description": s.description} for s in registry.values()]
 
 
-def _create_plugin_get_skill_instructions(plugin_name: str):
+def create_plugin_and_get_skill_instructions(plugin_name: str):
     """Create get_skill_instructions tool that uses the plugin's PluginManager.
 
     The builtin get_skill_instructions from langgraph_agent uses the global SkillManager
@@ -218,10 +219,13 @@ def load_plugin_mcp_config_from_json(plugin_path: str) -> dict:
         logger.error(f"Failed to load plugin MCP config from {mcp_path}: {e}")
         return {"mcpServers": {}}
 
+def get_builtin_tools():
+    """Return the list of built-in tools for the skill-aware agent."""
+    return [langgraph_agent.execute_code, langgraph_agent.write_file, langgraph_agent.read_file, langgraph_agent.upload_file_to_s3, langgraph_agent.get_skill_instructions]
 
 LOAD_MCP_CONFIG_WITH_SECRET_MANAGER = True  # use mcp_config.py to load MCP config where load credentials from secret manager
 
-async def run_plugin_agent(query, plugin_name, work_dir, containers):
+async def run_plugin_agent(query, plugin_name, containers):
     """Run plugin agent with MCP tools and skills."""
     chat.index = 0
     chat.streaming_index = 0
@@ -265,14 +269,15 @@ async def run_plugin_agent(query, plugin_name, work_dir, containers):
 
     # Use plugin-specific get_skill_instructions so plugin skills (e.g. frontend-design)
     # are found from plugins/<name>/skills/, not the global application/skills/
-    builtin_tools = langgraph_agent.get_builtin_tools()
-    plugin_get_skill = _create_plugin_get_skill_instructions(plugin_name)
+    builtin_tools = get_builtin_tools()
+    skill_instruction = create_plugin_and_get_skill_instructions(plugin_name)
+
+    # Replace with plugin-aware version that uses PluginManager in order to tool duplication
     tool_names = {t.name for t in tools}
     for bt in builtin_tools:
-        if bt.name == "get_skill_instructions":
-            # Replace with plugin-aware version that uses PluginManager in order to tool duplication
+        if bt.name == "get_skill_instructions":            
             if "get_skill_instructions" not in tool_names:
-                tools.append(plugin_get_skill)
+                tools.append(skill_instruction)
                 logger.info("Using plugin-specific get_skill_instructions")
         elif bt.name not in tool_names:
             tools.append(bt)
