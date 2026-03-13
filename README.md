@@ -2,7 +2,7 @@
 
 여기에서는 Anthropic의 Plugin을 LangGraph에서 활용하는 방법에 대해 설명합니다.
 
-<img width="1000" alt="image" src="https://github.com/user-attachments/assets/8bd9b991-f577-4bee-8c5f-520caecb041d" />
+<img width="1200" alt="image" src="https://github.com/user-attachments/assets/8bd9b991-f577-4bee-8c5f-520caecb041d" />
 
 
 ## Plugin
