@@ -74,12 +74,13 @@ claude mcp add slack -e SLACK_BOT_TOKEN=xoxb-your-actual-token -- npx @modelcont
 
 왼쪽 메뉴에서 "frontend-design"을 선택한 후에 아래와 같이 "LLM에 맞는 챗봇 UI를 디자인해주세요."라고 입력하면, get_skill_instructions이 frontend-design의 description을 읽어오고, 이를 바탕으로 챗봇 UI를 생성합니다.
 
-<img width="902" height="656" alt="image" src="https://github.com/user-attachments/assets/04a25576-578d-4299-af0e-ec7b80411e1f" />
+<img width="800" alt="image" src="https://github.com/user-attachments/assets/04a25576-578d-4299-af0e-ec7b80411e1f" />
 
 
 생성된 Frontend UI는 아래와 같습니다.
 
-<img width="1159" height="893" alt="image" src="https://github.com/user-attachments/assets/62e78ab0-5ce8-41c1-9674-1ef1ce2186d3" />
+<img width="1000" alt="image" src="https://github.com/user-attachments/assets/671180f0-dbc0-46eb-b3ee-cf73b2cde5c7" />
+
 
 - Notion Integration
 
