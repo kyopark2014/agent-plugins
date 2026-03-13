@@ -52,7 +52,7 @@ https://github.com/anthropics/knowledge-work-plugins
 [claude-plugins-official](https://github.com/anthropics/claude-plugins-official)에서 Claude Code에서 사용할 수 있는 다양한 플러그인을 활용할 수 있습니다. 여기에서 [frontend-design](https://github.com/anthropics/claude-plugins-official/tree/main/plugins/frontend-design)는 프론트엔드 인터페이스를 자동으로 생성해주는 도구입니다.
 
 
-## Plugin의 활용
+## Plugin 기능 구현
 
 [app.py](./application)은 streamlit UI에서 plugin을 선택하여 agent를 활용할 수 있도록 합니다. [application/plugins](https://github.com/kyopark2014/agent-plugins/tree/main/application/plugins)에는 knowledge-work-plugins와 claude-plugins-official에서 다운로드한 plugin들이 있습니다. 사용자가 streamlit에서 plugin을 선택하면 아래와 같이 plugin_agent에서 run_plugin_agent()가 실행됩니다.
 
