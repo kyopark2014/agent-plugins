@@ -1,6 +1,6 @@
 # LangGraph에서 Plugin 활용하기
 
-여기에서는 Anthropic의 Plugin을 LangGraph에서 활용하는 방법에 대해 설명합니다. Agent에서는 선택된 plugin의 Skill을 이용해 사용자의 요청을 처리하는데, 외부의 데이터는 Connector의 MCP를 이용해 가져옵니다. 여기에서는 Notion, Tavily, Slack, RAG와 같은 데이터 소스를 활용합니다. UI는 편의상 streamlit을 사용하고 있으며 외부와 접속시 CloudFront - ALB - EC2로 구성합니다. Production에서는 EC2를 ECS/EKS로 대체하여 scalability를 확보하거나, AgentCore와 같은 서버리스 형태로 구성할 수 있습니다.
+여기에서는 [Anthropic의 Plugin](https://code.claude.com/docs/en/plugins)을 [LangGraph](https://github.com/langchain-ai/langgraph)에서 활용하는 방법에 대해 설명합니다. Agent에서는 선택된 plugin의 [Skill](https://code.claude.com/docs/en/skills)을 이용해 사용자의 요청을 처리하는데, 외부의 데이터는 [Connector](https://claude.com/connectors#connectors)의 MCP를 이용해 가져옵니다. 여기에서는 [Notion](https://developers.notion.com/guides/mcp/mcp), [Tavily](https://docs.tavily.com/documentation/mcp), [Slack](https://github.com/kyopark2014/mcp/blob/main/mcp-slack.md), [RAG](./application/mcp_server_retrieve.py)와 같은 데이터 소스를 활용합니다. UI는 편의상 streamlit을 사용하고 있으며 외부와 접속시 CloudFront - ALB - EC2로 구성합니다. Production에서는 EC2를 ECS/EKS로 대체하여 scalability를 확보하거나, AgentCore와 같은 서버리스 형태로 구성할 수 있습니다.
 
 <img width="1200" alt="image" src="https://github.com/user-attachments/assets/8bd9b991-f577-4bee-8c5f-520caecb041d" />
 
