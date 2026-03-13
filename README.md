@@ -220,9 +220,3 @@ def available_skills_xml(self, skills: list[Skill]) -> str:
 
 <img width="1000" alt="image" src="https://github.com/user-attachments/assets/671180f0-dbc0-46eb-b3ee-cf73b2cde5c7" />
 
-
-- Notion Integration
-
-```text
-claude mcp add notion -e NOTION_API_KEY=secret_your_actual_key -- npx @modelcontextprotocol/server-notion
-```
