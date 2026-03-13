@@ -1,4 +1,4 @@
-# Plugin의 활용
+# LangGraph에서 Plugin 활용하기
 
 여기에서는 Anthropic의 Plugin을 LangGraph에서 활용하는 방법에 대해 설명합니다. Agent에서는 선택된 plugin의 Skill을 이용해 사용자의 요청을 처리하는데, 외부의 데이터는 Connector의 MCP를 이용해 가져옵니다. 여기에서는 Notion, Tavily, Slack, RAG와 같은 데이터 소스를 활용합니다. UI는 편의상 streamlit을 사용하고 있으며 외부와 접속시 CloudFront - ALB - EC2로 구성합니다. Production에서는 EC2를 ECS/EKS로 대체하여 scalability를 확보하거나, AgentCore와 같은 서버리스 형태로 구성할 수 있습니다.
 
