@@ -39,7 +39,7 @@ SKILLS_DIR = os.path.join(WORKING_DIR, "skills")
 ARTIFACTS_DIR = os.path.join(WORKING_DIR, "artifacts")
 
 # ═══════════════════════════════════════════════════════════════════
-#  1. Skill System  – Anthropic Agent Skills spec 구현
+#  1. Skill System  – implementation of Anthropic Agent Skills spec
 #     (https://agentskills.io/specification)
 # ═══════════════════════════════════════════════════════════════════
 
@@ -233,20 +233,20 @@ def execute_code(code: str) -> str:
 def write_file(filepath: str, content: str = "") -> str:
     """Write text content to a file.
 
-    CRITICAL: content는 반드시 전달해야 합니다. content 없이 호출하면 실패합니다.
+    CRITICAL: content must always be passed. Calling without content will fail.
     Never call without content. Both filepath and content are required in a single call.
 
     Args:
         filepath: Absolute path or path relative to WORKING_DIR.
-        content: The text content to write. REQUIRED - 절대 생략 불가. Must include full file content.
+        content: The text content to write. REQUIRED - must not be omitted. Must include full file content.
 
     Returns:
         A success or failure message.
     """
     if not content:
         return (
-            "오류: content 파라미터가 필요합니다. "
-            "write_file(filepath='경로', content='저장할_내용') 형태로 content에 저장할 전체 내용을 반드시 전달하세요."
+            "Error: content parameter is required. "
+            "Pass the full content to save in the form write_file(filepath='path', content='content_to_save')."
         )
     logger.info(f"###### write_file: {filepath} ######")
     try:
@@ -257,10 +257,10 @@ def write_file(filepath: str, content: str = "") -> str:
         with open(full_path, "w", encoding="utf-8") as f:
             f.write(content)
 
-        result_msg = f"파일이 저장되었습니다: {filepath}"
+        result_msg = f"File saved: {filepath}"
         return result_msg
     except Exception as e:
-        return f"파일 저장 실패: {str(e)}"
+        return f"Failed to save file: {str(e)}"
 
 
 @tool
@@ -279,7 +279,7 @@ def read_file(filepath: str) -> str:
         with open(full_path, "r", encoding="utf-8") as f:
             return f.read()
     except Exception as e:
-        return f"파일 읽기 실패: {str(e)}"
+        return f"Failed to read file: {str(e)}"
 
 
 @tool
@@ -299,11 +299,11 @@ def upload_file_to_s3(filepath: str) -> str:
 
         s3_bucket = config.get("s3_bucket")
         if not s3_bucket:
-            return "S3 버킷이 설정되어 있지 않습니다."
+            return "S3 bucket is not configured."
 
         full_path = os.path.join(WORKING_DIR, filepath)
         if not os.path.exists(full_path):
-            return f"파일을 찾을 수 없습니다: {filepath}"
+            return f"File not found: {filepath}"
 
         content_type = utils.get_contents_type(filepath)
         s3 = boto3.client("s3", region_name=config.get("region", "us-west-2"))
@@ -313,11 +313,11 @@ def upload_file_to_s3(filepath: str) -> str:
 
         if sharing_url:
             url = f"{sharing_url}/{url_parse.quote(filepath)}"
-            return f"업로드 완료: {url}"
-        return f"업로드 완료: s3://{s3_bucket}/{filepath}"
+            return f"Upload complete: {url}"
+        return f"Upload complete: s3://{s3_bucket}/{filepath}"
 
     except Exception as e:
-        return f"업로드 실패: {str(e)}"
+        return f"Upload failed: {str(e)}"
 
 
 @tool
@@ -452,7 +452,7 @@ def get_skill_instructions(skill_name: str) -> str:
     if instructions:
         return instructions
     available = ", ".join(skill_manager.registry.keys())
-    return f"Skill '{skill_name}'을 찾을 수 없습니다. 사용 가능한 skill: {available}"
+    return f"Skill '{skill_name}' not found. Available skills: {available}"
 
 
 def get_builtin_tools():

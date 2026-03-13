@@ -49,6 +49,9 @@ mode_descriptions = {
     ],
     "productivity": [
         "Task management, workplace memory, visual dashboard를 이용한 작업을 관리합니다."
+    ],
+    "frontend-design": [
+        "Frontend Design Plugin을 사용할 수 있습니다."
     ]
 }
 

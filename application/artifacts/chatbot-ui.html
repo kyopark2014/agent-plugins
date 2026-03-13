@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SYEON · AI Chat</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Syne:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg-deep:      #050c18;
+      --bg-panel:     #080f1e;
+      --bg-card:      #0d1829;
+      --bg-input:     #0a1422;
+      --border:       rgba(56, 189, 248, 0.12);
+      --border-glow:  rgba(56, 189, 248, 0.35);
+      --accent:       #38bdf8;
+      --accent-dim:   rgba(56, 189, 248, 0.18);
+      --accent-glow:  rgba(56, 189, 248, 0.08);
+      --teal:         #2dd4bf;
+      --teal-dim:     rgba(45, 212, 191, 0.15);
+      --text-primary: #e2eaf4;
+      --text-secondary: #7a9ab8;
+      --text-muted:   #3d5a73;
+      --user-bg:      linear-gradient(135deg, #0f2744 0%, #0d2038 100%);
+      --ai-bg:        #0d1829;
+      --shadow-glow:  0 0 40px rgba(56, 189, 248, 0.06);
+      --radius-lg:    16px;
+      --radius-md:    10px;
+      --radius-sm:    6px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      background: var(--bg-deep);
+      color: var(--text-primary);
+      font-family: 'Noto Sans KR', sans-serif;
+      font-weight: 300;
+      overflow: hidden;
+    }
+
+    /* ── 배경 노이즈 & 그리드 ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background-image:
+        radial-gradient(ellipse 80% 50% at 20% -10%, rgba(56,189,248,0.07) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 110%, rgba(45,212,191,0.05) 0%, transparent 55%);
+      pointer-events: none;
+    }
+    body::after {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background-image:
+        linear-gradient(rgba(56,189,248,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(56,189,248,0.025) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+    }
+
+    /* ── 레이아웃 ── */
+    .app {
+      position: relative; z-index: 1;
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      height: 100vh;
+    }
+
+    /* ── 사이드바 ── */
+    .sidebar {
+      background: var(--bg-panel);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .sidebar-header {
+      padding: 28px 20px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .logo-mark {
+      width: 32px; height: 32px;
+      border: 1.5px solid var(--accent);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+      box-shadow: 0 0 12px rgba(56,189,248,0.2), inset 0 0 8px rgba(56,189,248,0.05);
+    }
+    .logo-mark::before {
+      content: '';
+      width: 10px; height: 10px;
+      background: var(--accent);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--accent);
+      animation: pulse-dot 2.4s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.7); }
+    }
+
+    .logo-text {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 18px;
+      letter-spacing: 0.08em;
+      color: var(--text-primary);
+    }
+    .logo-text span { color: var(--accent); }
+
+    .new-chat-btn {
+      width: 100%;
+      padding: 10px 14px;
+      background: var(--accent-dim);
+      border: 1px solid var(--border-glow);
+      border-radius: var(--radius-md);
+      color: var(--accent);
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      display: flex; align-items: center; gap: 8px;
+      transition: all 0.2s ease;
+    }
+    .new-chat-btn:hover {
+      background: rgba(56,189,248,0.25);
+      box-shadow: 0 0 16px rgba(56,189,248,0.15);
+    }
+    .new-chat-btn svg { flex-shrink: 0; }
+
+    .sidebar-section {
+      padding: 16px 20px 8px;
+    }
+    .sidebar-section-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .chat-history {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0 12px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+    .chat-history::-webkit-scrollbar { width: 4px; }
+    .chat-history::-webkit-scrollbar-track { background: transparent; }
+    .chat-history::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .history-item {
+      padding: 9px 10px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      display: flex; align-items: center; gap: 8px;
+      transition: background 0.15s;
+      margin-bottom: 2px;
+    }
+    .history-item:hover { background: var(--accent-glow); }
+    .history-item.active {
+      background: var(--accent-dim);
+      border: 1px solid var(--border);
+    }
+    .history-item-dot {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      flex-shrink: 0;
+    }
+    .history-item.active .history-item-dot { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+    .history-item-text {
+      font-size: 12.5px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .history-item.active .history-item-text { color: var(--text-primary); }
+
+    .sidebar-footer {
+      padding: 16px 20px;
+      border-top: 1px solid var(--border);
+    }
+    .model-badge {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    .model-badge:hover { border-color: var(--border-glow); }
+    .model-badge-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--teal);
+      box-shadow: 0 0 6px var(--teal);
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+    .model-badge-name {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--text-secondary);
+      flex: 1;
+    }
+    .model-badge-name strong { color: var(--teal); font-weight: 500; }
+    .model-badge-arrow {
+      color: var(--text-muted);
+      font-size: 10px;
+    }
+
+    /* ── 메인 채팅 영역 ── */
+    .chat-main {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── 헤더 ── */
+    .chat-header {
+      padding: 18px 32px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(8,15,30,0.8);
+      backdrop-filter: blur(12px);
+      flex-shrink: 0;
+    }
+
+    .chat-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
+      font-size: 15px;
+      color: var(--text-primary);
+      letter-spacing: 0.02em;
+    }
+    .chat-subtitle {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+      letter-spacing: 0.04em;
+    }
+
+    .header-actions {
+      display: flex; gap: 8px;
+    }
+    .icon-btn {
+      width: 34px; height: 34px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s;
+    }
+    .icon-btn:hover {
+      border-color: var(--border-glow);
+      color: var(--accent);
+      background: var(--accent-glow);
+    }
+
+    /* ── 메시지 영역 ── */
+    .messages-wrap {
+      flex: 1;
+      overflow-y: auto;
+      padding: 32px 0;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+    .messages-wrap::-webkit-scrollbar { width: 5px; }
+    .messages-wrap::-webkit-scrollbar-track { background: transparent; }
+    .messages-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .messages-inner {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 0 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    /* ── 웰컴 화면 ── */
+    .welcome {
+      text-align: center;
+      padding: 60px 0 20px;
+      animation: fade-up 0.6s ease both;
+    }
+    @keyframes fade-up {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .welcome-icon {
+      width: 64px; height: 64px;
+      margin: 0 auto 24px;
+      border: 1.5px solid var(--border-glow);
+      border-radius: 18px;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--accent-dim);
+      box-shadow: 0 0 32px rgba(56,189,248,0.12), inset 0 0 16px rgba(56,189,248,0.04);
+      position: relative;
+    }
+    .welcome-icon::before {
+      content: '';
+      position: absolute; inset: -1px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, rgba(56,189,248,0.3), transparent 50%, rgba(45,212,191,0.2));
+      z-index: -1;
+    }
+
+    .welcome-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 28px;
+      letter-spacing: -0.01em;
+      margin-bottom: 10px;
+      background: linear-gradient(135deg, #e2eaf4 30%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .welcome-sub {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      max-width: 400px;
+      margin: 0 auto 36px;
+    }
+
+    .suggestion-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      max-width: 520px;
+      margin: 0 auto;
+    }
+    .suggestion-card {
+      padding: 14px 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.2s ease;
+      animation: fade-up 0.6s ease both;
+    }
+    .suggestion-card:nth-child(1) { animation-delay: 0.1s; }
+    .suggestion-card:nth-child(2) { animation-delay: 0.15s; }
+    .suggestion-card:nth-child(3) { animation-delay: 0.2s; }
+    .suggestion-card:nth-child(4) { animation-delay: 0.25s; }
+    .suggestion-card:hover {
+      border-color: var(--border-glow);
+      background: var(--accent-glow);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(56,189,248,0.08);
+    }
+    .suggestion-icon {
+      font-size: 18px;
+      margin-bottom: 6px;
+    }
+    .suggestion-title {
+      font-size: 12.5px;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 3px;
+    }
+    .suggestion-desc {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    /* ── 메시지 버블 ── */
+    .message {
+      display: flex;
+      gap: 14px;
+      animation: fade-up 0.35s ease both;
+    }
+    .message.user { flex-direction: row-reverse; }
+
+    .avatar {
+      width: 32px; height: 32px;
+      border-radius: 9px;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .avatar.ai {
+      background: var(--accent-dim);
+      border: 1px solid var(--border-glow);
+      color: var(--accent);
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      box-shadow: 0 0 12px rgba(56,189,248,0.1);
+    }
+    .avatar.user {
+      background: linear-gradient(135deg, #1e3a5f, #0f2744);
+      border: 1px solid rgba(56,189,248,0.2);
+      color: var(--accent);
+      font-family: 'Syne', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .bubble-wrap {
+      flex: 1;
+      max-width: calc(100% - 46px);
+    }
+    .message.user .bubble-wrap { display: flex; flex-direction: column; align-items: flex-end; }
+
+    .bubble-meta {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      letter-spacing: 0.04em;
+    }
+    .message.user .bubble-meta { text-align: right; }
+
+    .bubble {
+      padding: 14px 18px;
+      border-radius: var(--radius-lg);
+      line-height: 1.7;
+      font-size: 14px;
+      position: relative;
+    }
+    .bubble.ai {
+      background: var(--ai-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg) var(--radius-lg) var(--radius-lg) 4px;
+      color: var(--text-primary);
+    }
+    .bubble.user {
+      background: var(--user-bg);
+      border: 1px solid rgba(56,189,248,0.18);
+      border-radius: var(--radius-lg) var(--radius-lg) 4px var(--radius-lg);
+      color: var(--text-primary);
+      max-width: 480px;
+    }
+
+    .bubble.ai code {
+      font-family: 'DM Mono', monospace;
+      font-size: 12.5px;
+      background: rgba(56,189,248,0.08);
+      border: 1px solid rgba(56,189,248,0.15);
+      padding: 1px 6px;
+      border-radius: 4px;
+      color: var(--accent);
+    }
+
+    .bubble.ai pre {
+      background: rgba(5,12,24,0.8);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      margin: 10px 0;
+      overflow-x: auto;
+      font-family: 'DM Mono', monospace;
+      font-size: 12.5px;
+      line-height: 1.6;
+      color: #a8d8f0;
+    }
+
+    .bubble.ai strong { color: var(--accent); font-weight: 500; }
+
+    /* 타이핑 커서 */
+    .typing-cursor {
+      display: inline-block;
+      width: 2px; height: 14px;
+      background: var(--accent);
+      margin-left: 2px;
+      vertical-align: middle;
+      animation: blink 0.9s step-end infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    /* 로딩 점 */
+    .thinking {
+      display: flex; align-items: center; gap: 5px;
+      padding: 14px 18px;
+    }
+    .thinking-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: thinking-bounce 1.2s ease-in-out infinite;
+    }
+    .thinking-dot:nth-child(2) { animation-delay: 0.15s; background: var(--teal); }
+    .thinking-dot:nth-child(3) { animation-delay: 0.3s; background: var(--accent); opacity: 0.6; }
+    @keyframes thinking-bounce {
+      0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+      40% { transform: translateY(-6px); opacity: 1; }
+    }
+
+    /* 메시지 액션 */
+    .bubble-actions {
+      display: flex; gap: 4px;
+      margin-top: 8px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .message:hover .bubble-actions { opacity: 1; }
+    .bubble-action {
+      padding: 4px 8px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      color: var(--text-muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      cursor: pointer;
+      display: flex; align-items: center; gap: 4px;
+      transition: all 0.15s;
+    }
+    .bubble-action:hover {
+      border-color: var(--border-glow);
+      color: var(--accent);
+      background: var(--accent-glow);
+    }
+
+    /* ── 입력 영역 ── */
+    .input-area {
+      padding: 20px 32px 24px;
+      background: rgba(8,15,30,0.9);
+      backdrop-filter: blur(16px);
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .input-container {
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    .input-box {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 14px 16px;
+      display: flex;
+      align-items: flex-end;
+      gap: 12px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      position: relative;
+    }
+    .input-box:focus-within {
+      border-color: var(--border-glow);
+      box-shadow: 0 0 0 3px rgba(56,189,248,0.06), 0 0 24px rgba(56,189,248,0.06);
+    }
+
+    .input-left {
+      display: flex; gap: 6px; align-items: flex-end;
+    }
+    .attach-btn {
+      width: 30px; height: 30px;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+    .attach-btn:hover {
+      border-color: var(--border-glow);
+      color: var(--accent);
+      background: var(--accent-glow);
+    }
+
+    .input-field {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text-primary);
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 14px;
+      font-weight: 300;
+      line-height: 1.6;
+      resize: none;
+      min-height: 24px;
+      max-height: 160px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+    .input-field::placeholder { color: var(--text-muted); }
+
+    .send-btn {
+      width: 36px; height: 36px;
+      border-radius: 9px;
+      border: none;
+      background: linear-gradient(135deg, var(--accent), var(--teal));
+      color: var(--bg-deep);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.2s ease;
+      box-shadow: 0 0 16px rgba(56,189,248,0.25);
+    }
+    .send-btn:hover {
+      transform: scale(1.06);
+      box-shadow: 0 0 24px rgba(56,189,248,0.4);
+    }
+    .send-btn:active { transform: scale(0.96); }
+    .send-btn:disabled {
+      background: var(--bg-card);
+      color: var(--text-muted);
+      box-shadow: none;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .input-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 10px;
+      padding: 0 2px;
+    }
+    .input-hint {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      color: var(--text-muted);
+      letter-spacing: 0.04em;
+    }
+    .input-hint kbd {
+      display: inline-block;
+      padding: 1px 5px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+    }
+    .token-counter {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+    .token-counter span { color: var(--teal); }
+
+    /* ── 스크롤 하단 버튼 ── */
+    .scroll-bottom {
+      position: absolute;
+      bottom: 110px;
+      right: 40px;
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: var(--bg-card);
+      border: 1px solid var(--border-glow);
+      color: var(--accent);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+      transition: all 0.2s;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .scroll-bottom.visible { opacity: 1; pointer-events: all; }
+    .scroll-bottom:hover { background: var(--accent-dim); transform: translateY(-2px); }
+
+    /* ── 반응형 ── */
+    @media (max-width: 768px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .messages-inner { padding: 0 16px; }
+      .input-area { padding: 16px; }
+      .chat-header { padding: 14px 16px; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ── 사이드바 ── -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <div class="logo-mark"></div>
+        <div class="logo-text">SY<span>EON</span></div>
+      </div>
+      <button class="new-chat-btn" onclick="newChat()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        NEW CONVERSATION
+      </button>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Recent</div>
+    </div>
+
+    <div class="chat-history" id="chatHistory">
+      <div class="history-item active">
+        <div class="history-item-dot"></div>
+        <div class="history-item-text">LLM 챗봇 UI 디자인 요청</div>
+      </div>
+      <div class="history-item">
+        <div class="history-item-dot"></div>
+        <div class="history-item-text">Python 코드 리뷰 및 최적화</div>
+      </div>
+      <div class="history-item">
+        <div class="history-item-dot"></div>
+        <div class="history-item-text">React 컴포넌트 설계 패턴</div>
+      </div>
+      <div class="history-item">
+        <div class="history-item-dot"></div>
+        <div class="history-item-text">데이터베이스 스키마 설계</div>
+      </div>
+      <div class="history-item">
+        <div class="history-item-dot"></div>
+        <div class="history-item-text">API 문서 작성 가이드</div>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="model-badge">
+        <div class="model-badge-dot"></div>
+        <div class="model-badge-name"><strong>GPT-4o</strong> · Active</div>
+        <div class="model-badge-arrow">⌄</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── 메인 채팅 ── -->
+  <main class="chat-main">
+    <header class="chat-header">
+      <div>
+        <div class="chat-title">New Conversation</div>
+        <div class="chat-subtitle">GPT-4o · context 128k · streaming on</div>
+      </div>
+      <div class="header-actions">
+        <button class="icon-btn" title="설정">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+        <button class="icon-btn" title="공유">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="messages-wrap" id="messagesWrap">
+      <div class="messages-inner" id="messagesInner">
+
+        <!-- 웰컴 화면 -->
+        <div class="welcome" id="welcomeScreen">
+          <div class="welcome-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="1.5">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+          </div>
+          <div class="welcome-title">무엇을 도와드릴까요?</div>
+          <div class="welcome-sub">질문하거나 아이디어를 공유해보세요.<br/>코드 작성, 분석, 창작 등 무엇이든 함께합니다.</div>
+          <div class="suggestion-grid">
+            <div class="suggestion-card" onclick="sendSuggestion('Python으로 REST API 서버를 만드는 방법을 알려줘')">
+              <div class="suggestion-icon">⚡</div>
+              <div class="suggestion-title">코드 작성</div>
+              <div class="suggestion-desc">Python REST API 서버 만들기</div>
+            </div>
+            <div class="suggestion-card" onclick="sendSuggestion('트랜스포머 아키텍처의 어텐션 메커니즘을 설명해줘')">
+              <div class="suggestion-icon">🧠</div>
+              <div class="suggestion-title">개념 설명</div>
+              <div class="suggestion-desc">트랜스포머 어텐션 메커니즘</div>
+            </div>
+            <div class="suggestion-card" onclick="sendSuggestion('이 코드의 시간 복잡도를 분석하고 최적화 방법을 제안해줘')">
+              <div class="suggestion-icon">🔍</div>
+              <div class="suggestion-title">코드 분석</div>
+              <div class="suggestion-desc">시간 복잡도 분석 및 최적화</div>
+            </div>
+            <div class="suggestion-card" onclick="sendSuggestion('스타트업 아이디어를 위한 비즈니스 플랜을 작성해줘')">
+              <div class="suggestion-icon">✍️</div>
+              <div class="suggestion-title">문서 작성</div>
+              <div class="suggestion-desc">스타트업 비즈니스 플랜</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 스크롤 하단 버튼 -->
+    <button class="scroll-bottom" id="scrollBottomBtn" onclick="scrollToBottom()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="6 9 12 15 18 9"/>
+      </svg>
+    </button>
+
+    <!-- 입력 영역 -->
+    <div class="input-area">
+      <div class="input-container">
+        <div class="input-box">
+          <div class="input-left">
+            <button class="attach-btn" title="파일 첨부">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+              </svg>
+            </button>
+          </div>
+          <textarea
+            class="input-field"
+            id="inputField"
+            placeholder="메시지를 입력하세요..."
+            rows="1"
+            onkeydown="handleKeyDown(event)"
+            oninput="autoResize(this); updateCounter(this)"
+          ></textarea>
+          <button class="send-btn" id="sendBtn" onclick="sendMessage()" disabled>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
+          </button>
+        </div>
+        <div class="input-footer">
+          <div class="input-hint"><kbd>Enter</kbd> 전송 &nbsp;·&nbsp; <kbd>Shift</kbd>+<kbd>Enter</kbd> 줄바꿈</div>
+          <div class="token-counter" id="tokenCounter"><span>0</span> / 4096 tokens</div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  const inputField = document.getElementById('inputField');
+  const sendBtn = document.getElementById('sendBtn');
+  const messagesInner = document.getElementById('messagesInner');
+  const messagesWrap = document.getElementById('messagesWrap');
+  const welcomeScreen = document.getElementById('welcomeScreen');
+  const scrollBottomBtn = document.getElementById('scrollBottomBtn');
+
+  let isGenerating = false;
+  let messageCount = 0;
+
+  // 입력 감지
+  inputField.addEventListener('input', () => {
+    sendBtn.disabled = inputField.value.trim() === '' || isGenerating;
+  });
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+  }
+
+  function updateCounter(el) {
+    const approxTokens = Math.ceil(el.value.length / 3.5);
+    const counter = document.getElementById('tokenCounter');
+    counter.innerHTML = `<span>${approxTokens}</span> / 4096 tokens`;
+  }
+
+  function handleKeyDown(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (!sendBtn.disabled) sendMessage();
+    }
+  }
+
+  function scrollToBottom(smooth = true) {
+    messagesWrap.scrollTo({ top: messagesWrap.scrollHeight, behavior: smooth ? 'smooth' : 'instant' });
+  }
+
+  messagesWrap.addEventListener('scroll', () => {
+    const distFromBottom = messagesWrap.scrollHeight - messagesWrap.scrollTop - messagesWrap.clientHeight;
+    scrollBottomBtn.classList.toggle('visible', distFromBottom > 120);
+  });
+
+  function sendSuggestion(text) {
+    inputField.value = text;
+    autoResize(inputField);
+    sendBtn.disabled = false;
+    sendMessage();
+  }
+
+  function newChat() {
+    messagesInner.innerHTML = '';
+    const welcome = document.createElement('div');
+    welcome.className = 'welcome';
+    welcome.id = 'welcomeScreen';
+    welcome.innerHTML = `
+      <div class="welcome-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="1.5">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+      </div>
+      <div class="welcome-title">무엇을 도와드릴까요?</div>
+      <div class="welcome-sub">질문하거나 아이디어를 공유해보세요.<br/>코드 작성, 분석, 창작 등 무엇이든 함께합니다.</div>
+    `;
+    messagesInner.appendChild(welcome);
+    messageCount = 0;
+  }
+
+  async function sendMessage() {
+    const text = inputField.value.trim();
+    if (!text || isGenerating) return;
+
+    // 웰컴 화면 제거
+    const ws = document.getElementById('welcomeScreen');
+    if (ws) ws.remove();
+
+    // 사용자 메시지 추가
+    appendUserMessage(text);
+    inputField.value = '';
+    inputField.style.height = 'auto';
+    document.getElementById('tokenCounter').innerHTML = '<span>0</span> / 4096 tokens';
+    sendBtn.disabled = true;
+    isGenerating = true;
+    messageCount++;
+
+    scrollToBottom();
+
+    // AI 응답 시뮬레이션
+    await simulateAIResponse(text);
+    isGenerating = false;
+    sendBtn.disabled = inputField.value.trim() === '';
+  }
+
+  function appendUserMessage(text) {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+
+    const msg = document.createElement('div');
+    msg.className = 'message user';
+    msg.innerHTML = `
+      <div class="avatar user">나</div>
+      <div class="bubble-wrap">
+        <div class="bubble-meta">${timeStr}</div>
+        <div class="bubble user">${escapeHtml(text)}</div>
+      </div>
+    `;
+    messagesInner.appendChild(msg);
+  }
+
+  async function simulateAIResponse(userText) {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+
+    // 생각 중 표시
+    const thinkingEl = document.createElement('div');
+    thinkingEl.className = 'message';
+    thinkingEl.innerHTML = `
+      <div class="avatar ai">AI</div>
+      <div class="bubble-wrap">
+        <div class="bubble-meta">${timeStr}</div>
+        <div class="bubble ai">
+          <div class="thinking">
+            <div class="thinking-dot"></div>
+            <div class="thinking-dot"></div>
+            <div class="thinking-dot"></div>
+          </div>
+        </div>
+      </div>
+    `;
+    messagesInner.appendChild(thinkingEl);
+    scrollToBottom();
+
+    await sleep(900 + Math.random() * 600);
+
+    // 응답 선택
+    const response = getAIResponse(userText);
+
+    // 타이핑 효과로 교체
+    const bubble = thinkingEl.querySelector('.bubble');
+    bubble.innerHTML = '<span class="typing-cursor"></span>';
+
+    let displayed = '';
+    const chars = response.split('');
+    const speed = Math.max(8, Math.min(25, 2000 / chars.length));
+
+    for (let i = 0; i < chars.length; i++) {
+      displayed += chars[i];
+      bubble.innerHTML = renderMarkdown(displayed) + '<span class="typing-cursor"></span>';
+      if (i % 3 === 0) scrollToBottom();
+      await sleep(speed + (Math.random() * 6 - 3));
+    }
+
+    // 커서 제거 + 액션 버튼 추가
+    bubble.innerHTML = renderMarkdown(response);
+    const bw = thinkingEl.querySelector('.bubble-wrap');
+    bw.innerHTML += `
+      <div class="bubble-actions">
+        <button class="bubble-action" onclick="copyText(this, \`${response.replace(/`/g,'\\`')}\`)">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+          </svg>
+          복사
+        </button>
+        <button class="bubble-action">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/>
+          </svg>
+          재생성
+        </button>
+        <button class="bubble-action">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/>
+            <path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/>
+          </svg>
+          좋아요
+        </button>
+      </div>
+    `;
+    scrollToBottom();
+  }
+
+  function getAIResponse(text) {
+    const lower = text.toLowerCase();
+    if (lower.includes('python') || lower.includes('api') || lower.includes('코드')) {
+      return `물론이죠! Python으로 간단한 REST API 서버를 만드는 방법을 알려드릴게요.\n\n**FastAPI**를 사용하면 빠르고 현대적인 API를 쉽게 만들 수 있습니다.\n\n먼저 패키지를 설치합니다:\n\`\`\`bash\npip install fastapi uvicorn\n\`\`\`\n\n그리고 \`main.py\` 파일을 작성합니다:\n\`\`\`python\nfrom fastapi import FastAPI\n\napp = FastAPI()\n\n@app.get("/")\ndef read_root():\n    return {"message": "Hello, World!"}\n\n@app.get("/items/{item_id}")\ndef read_item(item_id: int, q: str = None):\n    return {"item_id": item_id, "q": q}\n\`\`\`\n\n서버를 실행하려면:\n\`\`\`bash\nuvicorn main:app --reload\n\`\`\`\n\n**주요 특징:**\n- **자동 문서화**: \`/docs\`에서 Swagger UI 확인 가능\n- **타입 힌팅**: Python 타입 힌트로 자동 검증\n- **비동기 지원**: \`async/await\` 완벽 지원\n\n더 복잡한 기능이 필요하시면 말씀해 주세요! 🚀`;
+    } else if (lower.includes('트랜스포머') || lower.includes('어텐션') || lower.includes('llm')) {
+      return `트랜스포머의 **어텐션 메커니즘**은 현대 LLM의 핵심입니다.\n\n**Self-Attention의 핵심 아이디어:**\n\n입력 시퀀스의 각 토큰이 다른 모든 토큰과 얼마나 관련 있는지를 계산합니다.\n\n**수식으로 표현하면:**\n\`\`\`\nAttention(Q, K, V) = softmax(QKᵀ / √dₖ) · V\n\`\`\`\n\n여기서:\n- **Q (Query)**: "무엇을 찾고 있나?"\n- **K (Key)**: "나는 어떤 정보를 가지고 있나?"\n- **V (Value)**: "실제로 전달할 정보"\n\n**Multi-Head Attention**은 이를 여러 번 병렬로 수행하여 다양한 관점에서 관계를 포착합니다.\n\n이 메커니즘 덕분에 "나는 **은행**에 갔다"에서 '은행'이 금융 기관인지 강둑인지 문맥으로 파악할 수 있습니다. 🧠`;
+    } else {
+      return `안녕하세요! 말씀하신 내용을 잘 이해했습니다.\n\n저는 다양한 방면에서 도움을 드릴 수 있어요:\n\n- **코드 작성 & 디버깅**: Python, JavaScript, TypeScript 등\n- **개념 설명**: 복잡한 기술 개념을 쉽게 풀어드립니다\n- **문서 작성**: 기술 문서, 보고서, 이메일 등\n- **데이터 분석**: SQL, pandas, 시각화 등\n- **아이디어 브레인스토밍**: 창의적인 문제 해결\n\n더 구체적으로 어떤 도움이 필요하신가요? 자세히 알려주시면 더 정확한 답변을 드릴 수 있습니다! ✨`;
+    }
+  }
+
+  function renderMarkdown(text) {
+    return text
+      .replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) =>
+        `<pre><code>${escapeHtml(code.trim())}</code></pre>`)
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/\n/g, '<br/>');
+  }
+
+  function escapeHtml(text) {
+    return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function copyText(btn, text) {
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = '✓ 복사됨';
+      setTimeout(() => {
+        btn.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> 복사`;
+      }, 2000);
+    });
+  }
+
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+</script>
+</body>
+</html>
