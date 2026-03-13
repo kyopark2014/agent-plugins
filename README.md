@@ -1,13 +1,13 @@
 # Plugin의 활용
 
-여기에서는 Anthropic의 Plugin을 LangGraph에서 활용하는 방법에 대해 설명합니다.
+여기에서는 Anthropic의 Plugin을 LangGraph에서 활용하는 방법에 대해 설명합니다. Agent에서는 선택된 plugin의 Skill을 이용해 사용자의 요청을 처리하는데, 외부의 데이터는 Connector의 MCP를 이용해 가져옵니다. 여기에서는 Notion, Tavily, Slack, RAG와 같은 데이터 소스를 활용합니다. UI는 편의상 streamlit을 사용하고 있으며 외부와 접속시 CloudFront - ALB - EC2로 구성합니다. Production에서는 EC2를 ECS/EKS로 대체하여 scalability를 확보하거나, AgentCore와 같은 서버리스 형태로 구성할 수 있습니다.
 
 <img width="1200" alt="image" src="https://github.com/user-attachments/assets/8bd9b991-f577-4bee-8c5f-520caecb041d" />
 
 
 ## Plugin
 
-Plugin은 아래와 같이 skill을 이용해 동작하는데 외부의 연결은 MCP를 포함한 connector로 구현하고 sub-agent를 활용할 수 있습니다.
+Plugin은 아래와 같이 Skill을 이용해 동작하는데 외부의 연결은 MCP를 포함한 Connector로 구현하고 sub-agent를 활용할 수 있습니다.
 
 ```text
 Plugin = Skills(행동 방식) + Connectors(외부 연결) + Slash Commands(명령어) + Sub-agents(하위 에이전트) 
@@ -35,7 +35,7 @@ Anthropic의 [knowledge-work-plugins](https://github.com/anthropics/knowledge-wo
 | 📋 product-management | 스펙 작성, 로드맵, 사용자 리서치 | Figma, Amplitude, Linear 등 |
 | 📣 marketing | 콘텐츠 초안, 캠페인, 브랜드 관리 | Canva, Ahrefs, Klaviyo 등 |
 | ⚖️ legal | 계약서 검토, NDA, 리스크 평가 | Box, Egnyte, Microsoft 365 |
-| 💰 finance | 분개, 재무제표, 결산 관리 | Snowflake, BigQuery, Databricks |
+| 💰 finance | 재무제표, 결산 관리 | Snowflake, BigQuery, Databricks |
 | 📊 data | SQL 작성, 시각화, 통계 분석 | Snowflake, Hex, Amplitude |
 | 🔍 enterprise-search | 이메일/채팅/문서 통합 검색 | Slack, Notion, Jira, Asana |
 | 🧬 bio-research | 생명과학 R&D 가속화 | PubMed, ClinicalTrials.gov, ChEMBL |
