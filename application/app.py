@@ -94,6 +94,7 @@ with st.sidebar:
         "drawio",
         "text_extraction",
         "slack",
+        "notion",
         "사용자 설정"
     ]
 

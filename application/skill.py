@@ -30,9 +30,6 @@ ARTIFACTS_DIR = os.path.join(WORKING_DIR, "artifacts")
 
 config = utils.load_config()
 sharing_url = config.get("sharing_url")
-s3_prefix = "docs"
-capture_prefix = "captures"
-user_id = "langgraph"
 
 # ═══════════════════════════════════════════════════════════════════
 #  Skill Manager – implementation of Anthropic Agent Skills spec
