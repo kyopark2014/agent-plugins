@@ -85,7 +85,7 @@ with st.sidebar:
     mcp_options = [
         "basic", 
         "use-aws", 
-        "tavily-search", 
+        "tavily", 
         "knowledge base", 
         "aws_documentation", 
         "trade_info", 
@@ -95,6 +95,7 @@ with st.sidebar:
         "text_extraction",
         "slack",
         "notion",
+        "outlook",
         "사용자 설정"
     ]
 

@@ -2,6 +2,7 @@ import logging
 import sys
 import utils
 import os
+import json
 
 logging.basicConfig(
     level=logging.INFO,  # Default to INFO level
@@ -29,6 +30,39 @@ logger.info(f"contents_dir: {contents_dir}")
 
 mcp_user_config = {}    
 
+def get_secret_value(secret_name):
+    session = boto3.Session()
+    client = session.client('secretsmanager', region_name=region)
+    
+    try:
+        response = client.get_secret_value(SecretId=secret_name)
+        return response['SecretString']
+    except client.exceptions.ResourceNotFoundException:
+        logger.info(f"Secret not found, creating new secret: {secret_name}")
+        try:
+            # Create secret value with bearer_key 
+            secret_value = {
+                "key": secret_name,
+                "value": "need to update"
+            }
+            
+            # Convert to JSON string
+            secret_string = json.dumps(secret_value)
+
+            client.create_secret(
+                Name=secret_name,
+                SecretString=secret_string,  
+                Description=f"secret key and token for {secret_name}"
+            )
+            logger.info(f"Secret created: {secret_name}. Please update it with the actual value.")
+            return None
+        except Exception as create_error:
+            logger.error(f"Failed to create secret: {create_error}")
+            return None
+    except Exception as e:
+        logger.error(f"Error getting secret value: {e}")
+        return None
+
 def load_config(mcp_type):
     if mcp_type == "code interpreter":
         mcp_type = "repl_coder"
@@ -47,7 +81,7 @@ def load_config(mcp_type):
             }
         }
     
-    elif mcp_type == "tavily-search":
+    elif mcp_type == "tavily":
         return {
             "mcpServers": {
                 "tavily-search": {
@@ -192,6 +226,27 @@ def load_config(mcp_type):
             }
         }
 
+    elif mcp_type == "outlook":
+        secret_name = f"outlook-mcp-user-email"
+        secret_value = json.loads(get_secret_value(secret_name))
+        OUTLOOK_MCP_USER_EMAIL = secret_value['value']
+        if not OUTLOOK_MCP_USER_EMAIL:
+            logger.info(f"No outlook user email found in secret manager")
+            return {}
+        else:
+            logger.info(f"outlook user email: {OUTLOOK_MCP_USER_EMAIL}")
+            return {
+                "mcpServers": {
+                    "outlook": {
+                        "command": f"{workingDir}/outlook-mac/outlook_mcp.py",
+                        "env":{
+                            "USER_EMAIL":OUTLOOK_MCP_USER_EMAIL,
+                            "OUTLOOK_MCP_LOG_LEVEL":"INFO"
+                        }
+                    }
+                }
+            }
+    
     elif mcp_type == "notion":
         return {
             "mcpServers": {
