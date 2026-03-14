@@ -79,8 +79,7 @@ async def run_plugin_agent(query, mcp_servers, plugin_name, containers):
             logger.info(f"builtin_tool {bt.name} already in tools")
 
     # Get plugin-specific skills and register them in SkillManager's registry
-    plugin_skills_dir = os.path.join(plugin.PLUGINS_DIR, plugin_name, "skills")
-    skill.register_plugin_skills(plugin_name, plugin_skills_dir)
+    skill.register_plugin_skills(plugin_name)
 
     plugin_skills = plugin.get_plugin_skills(plugin_name)
     logger.info(f"plugin: {plugin_name}, skills: {plugin_skills}")
@@ -95,14 +94,13 @@ async def run_plugin_agent(query, mcp_servers, plugin_name, containers):
             containers['notification'][0].markdown(result)
         return result
 
-    app = langgraph_agent.buildChatAgent(tools)
+    app = langgraph_agent.buildChatAgentWithHistory(tools)
     config = {
         "recursion_limit": 100,
         "configurable": {
             "thread_id": f"plugin-{plugin_name}",
             "tools": tools,
-            "skill_group": plugin_name,
-            "skill_list": plugin_skills,
+            "plugin_name": plugin_name,
             "system_prompt": None,
         }
     }

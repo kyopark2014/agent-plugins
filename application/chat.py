@@ -27,6 +27,7 @@ from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.store.memory import InMemoryStore
+from typing import Optional
 
 import logging
 import sys
@@ -1536,7 +1537,7 @@ def get_tool_info(tool_name, tool_content):
 
     return content, urls, tool_references
 
-async def run_langgraph_agent(query, mcp_servers, selected_skills, history_mode, containers):
+async def run_langgraph_agent(query: str, mcp_servers: list, plugin_name: Optional[str]=None, history_mode: str="Disable", containers: Optional[dict]=None) -> tuple[str, list]:
     global index, streaming_index
     index = 0
 
@@ -1595,8 +1596,7 @@ async def run_langgraph_agent(query, mcp_servers, selected_skills, history_mode,
             "recursion_limit": 100,
             "configurable": {"thread_id": user_id},
             "tools": tools,
-            "skill_group": "base",
-            "skill_list": selected_skills,
+            "plugin_name": plugin_name,
             "system_prompt": None
         }
     else:
@@ -1605,7 +1605,7 @@ async def run_langgraph_agent(query, mcp_servers, selected_skills, history_mode,
             "recursion_limit": 100,
             "configurable": {"thread_id": user_id},
             "tools": tools,
-            "skills": selected_skills,
+            "plugin_name": plugin_name,
             "system_prompt": None
         }        
     

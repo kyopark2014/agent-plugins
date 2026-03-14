@@ -161,6 +161,18 @@ def create_plugin_and_get_skill_instructions(plugin_name: str):
         instructions = plugin_manager.get_skill_instructions(skill_name)
         if instructions:
             return instructions
+
+        # fallback to base skills
+        if plugin_name != "base":
+            base_manager = plugin_managers.get("base")
+            if base_manager is None:
+                skills_dir = os.path.join(WORKING_DIR, "skills")
+                base_manager = PluginManager(skills_dir)
+                plugin_managers["base"] = base_manager
+            instructions = base_manager.get_skill_instructions(skill_name)
+            if instructions:
+                return instructions
+
         available = ", ".join(plugin_manager.registry.keys())
         return f"Skill '{skill_name}' not found. Available skills: {available}"
 
