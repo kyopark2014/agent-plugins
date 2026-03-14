@@ -116,40 +116,6 @@ class SkillManager:
         body = parts[2].strip()
         return frontmatter, body
 
-    def available_skills_xml(self, skill_list: Optional[list] = None) -> str:
-        """Generate <available_skills> XML for the system prompt (metadata only).
-        When skills is None, include all registered skills.
-        skills can be: None, list of str, or list of dict with 'name' key."""
-        if not self.registry:
-            return ""
-        if skill_list is not None:
-            skill_names = [
-                item.get("name", item) if isinstance(item, dict) else item
-                for item in skill_list
-            ]
-        else:
-            skill_names = None
-        lines = ["<available_skills>"]
-
-        # add plugin skills
-        for s in self.registry.values():
-            if skill_names is None or s.name in skill_names:
-                lines.append("  <skill>")
-                lines.append(f"    <name>{s.name}</name>")
-                lines.append(f"    <description>{s.description}</description>")
-                lines.append("  </skill>")
-
-        # add base skills
-        base_skills = available_skills_list("base")
-        for s in base_skills:
-            lines.append("  <skill>")
-            lines.append(f"    <name>{s['name']}</name>")
-            lines.append(f"    <description>{s['description']}</description>")
-            lines.append("  </skill>")
-
-        lines.append("</available_skills>")
-        return "\n".join(lines)
-
     def get_skill_instructions(self, name: str) -> Optional[str]:
         """Return full instructions for a skill (loaded on demand)."""
         skill = self.registry.get(name)
@@ -158,6 +124,15 @@ class SkillManager:
 # define global skill_managers
 skill_managers: dict[str, SkillManager] = {}
 
+def get_skills_xml(skill_meta: list) -> str:
+    lines = ["<available_skills>"]
+    for s in skill_meta:
+        lines.append("  <skill>")
+        lines.append(f"    <name>{s['name']}</name>")
+        lines.append(f"    <description>{s['description']}</description>")
+        lines.append("  </skill>")
+    lines.append("</available_skills>")
+    return "\n".join(lines)
 
 def register_plugin_skills(plugin_name: str):
     """Register skills from a plugin's skills directory into SkillManager's registry."""    
@@ -174,7 +149,7 @@ def register_plugin_skills(plugin_name: str):
     skill_manager.discover_plugin_skills(skills_dir)
 
 
-def available_skills_list(plugin_name: str):
+def available_skill_meta(plugin_name: str) -> list:
     skill_manager = skill_managers.get(plugin_name)
     if skill_manager is None:
         if plugin_name == "base": # base skills
@@ -189,23 +164,29 @@ def available_skills_list(plugin_name: str):
     if not registry:
         return []
     
-    skill_list = []
+    skill_meta = []
     for s in registry.values():
-        skill_list.append({"name": s.name, "description": s.description})
+        skill_meta.append({"name": s.name, "description": s.description})
         
-    return skill_list
+    return skill_meta
 
-def resolve_skill_list(plugin_name: Optional[str]=None) -> list:
-    app_config = utils.load_config()
-    if plugin_name:
-        skill_list = app_config.get("plugin_skills", {}).get(plugin_name)
-    else:
-        skill_list = app_config.get("default_skills")
 
-    if skill_list is None:
-        skill_list = available_skills_list(plugin_name or "base")
+def selected_skill_meta(plugin_name: str) -> list:
+    config = utils.load_config()
+    if plugin_name == "base":
+        skill_list = config.get("default_skills") or []
+    else:   # plugin skills
+        skill_list = config.get("plugin_skills", {}).get(plugin_name) or []
+    logger.info(f"plugin_name: {plugin_name}, skill_list: {skill_list}")
 
-    return skill_list
+    skill_meta = available_skill_meta(plugin_name)
+
+    selected_skill_meta = []
+    for s in skill_meta:
+        if s["name"] in skill_list:
+            selected_skill_meta.append(s)
+    return selected_skill_meta
+
 
 SKILL_SYSTEM_PROMPT = (
     "당신의 이름은 서연이고, 질문에 친근한 방식으로 대답하도록 설계된 대화형 AI입니다.\n"
@@ -230,17 +211,14 @@ SKILL_USAGE_GUIDE = (
 
 def build_skill_prompt(plugin_name: str) -> str:
     """Build skill-related prompt: path info, available skills XML, and usage guide."""
-    skill_list = resolve_skill_list(plugin_name)
-    logger.info(f"skill_list: {skill_list}")
+    skill_meta = selected_skill_meta(plugin_name)
+    logger.info(f"plugin_name: {plugin_name}, skill_meta: {skill_meta}")
 
-    skill_manager = skill_managers.get(plugin_name)
-    if skill_manager is None:
-        if plugin_name == "base": # base skills
-            skills_dir = SKILLS_DIR
-        else:   # plugin skills
-            skills_dir = os.path.join(WORKING_DIR, "plugins", plugin_name, "skills")
-        skill_manager = SkillManager(skills_dir)
-        skill_managers[plugin_name] = skill_manager
+    if plugin_name != "base":
+        default_skill_meta = selected_skill_meta("base")
+        if default_skill_meta:
+            skill_meta.extend(default_skill_meta)
+            logger.info(f"default_skill_meta: {default_skill_meta}")
 
     path_info = (
         f"## Paths (use absolute paths for write_file, read_file)\n"
@@ -249,7 +227,7 @@ def build_skill_prompt(plugin_name: str) -> str:
         f"Example: write_file(filepath='{os.path.join(ARTIFACTS_DIR, 'report.drawio')}', content='...')\n\n"
     )
 
-    skills_xml = skill_manager.available_skills_xml(skill_list)
+    skills_xml = get_skills_xml(skill_meta)
     if skills_xml:
         return f"{SKILL_SYSTEM_PROMPT}\n{path_info}\n{skills_xml}\n{SKILL_USAGE_GUIDE}"
     return f"{SKILL_SYSTEM_PROMPT}\n{path_info}"

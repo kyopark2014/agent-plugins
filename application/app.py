@@ -80,18 +80,33 @@ with st.sidebar:
         label="원하는 대화 형태를 선택하세요. ",options=options, index=3
     )   
     st.info(mode_descriptions[mode][0])
-    
+
     # mcp selection    
+    mcp_options = [
+        "basic", 
+        "use-aws", 
+        "tavily-search", 
+        "knowledge base", 
+        "aws_documentation", 
+        "trade_info", 
+        "code interpreter", 
+        "web_fetch",
+        "drawio",
+        "text_extraction",
+        "slack",
+        "사용자 설정"
+    ]
+
     if mode=='Agent' or mode=='Agent (Chat)':
         # Skill Config JSON input
         st.subheader("⚙️ Skill Config")
 
         skill_selections = {}
         default_skill_selections = config.get("default_skills") or ["pdf", "notion", "memory-manager"]
+        logger.info(f"default_skill_selections: {default_skill_selections}")
         with st.expander("Skill 옵션 선택", expanded=True):
-            skill_group = "base"
-            skill_list = skill.available_skills_list(skill_group)
-            for s in skill_list:
+            available_skill_meta = skill.available_skill_meta("base")
+            for s in available_skill_meta:
                 default_value = s["name"] in default_skill_selections
                 skill_selections[s["name"]] = st.checkbox(s["name"], key=f"skill_{s['name']}", value=default_value, help=s["description"], disabled=False)
     
@@ -106,25 +121,7 @@ with st.sidebar:
         # MCP Config JSON input
         st.subheader("⚙️ MCP Config")
 
-        # Change radio to checkbox
-        mcp_options = [
-            "basic", 
-            "use-aws", 
-            "tavily-search", 
-            "knowledge base", 
-            "aws_documentation", 
-            "trade_info", 
-            "code interpreter", 
-            "terminal (MAC)", 
-            "terminal (linux)", 
-            "filesystem", 
-            "web_fetch",
-            "drawio",
-            "aws-drawio",
-            "text_extraction",
-            "slack",
-            "사용자 설정"
-        ]
+        # Change radio to checkbox        
         mcp_selections = {}
         default_selections = ["code interpreter", "aws_documentation"]
         
@@ -181,9 +178,9 @@ with st.sidebar:
         logger.info(f"default_plugin_skill_selections: {default_plugin_skill_selections}")
 
         with st.expander("Plugin Skill 옵션 선택", expanded=True):
-            plugin_skill_list = skill.available_skills_list(mode)
-            logger.info(f"plugin_skill_list: {plugin_skill_list}")
-            for s in plugin_skill_list:
+            plugin_skill_meta = skill.available_skill_meta(mode)
+            logger.info(f"plugin_skill_meta: {plugin_skill_meta}")
+            for s in plugin_skill_meta:
                 default_value = s["name"] in default_plugin_skill_selections
                 plugin_skill_selections[s["name"]] = st.checkbox(s["name"], key=f"plugin_skill_{s['name']}", value=default_value, help=s["description"], disabled=False)
     
@@ -202,8 +199,8 @@ with st.sidebar:
         skill_selections = {}
         default_skill_selections = config.get("default_skills") or []
         with st.expander("Skill 옵션 선택", expanded=True):
-            skill_list = skill.available_skills_list("base")
-            for s in skill_list:
+            skill_meta = skill.available_skills_meta("base")
+            for s in skill_meta:
                 default_value = s["name"] in default_skill_selections
                 skill_selections[s["name"]] = st.checkbox(s["name"], key=f"skill_{s['name']}", value=default_value, help=s["description"], disabled=False)
     
@@ -220,24 +217,6 @@ with st.sidebar:
         st.subheader("⚙️ MCP Config")
 
         # Change radio to checkbox
-        mcp_options = [
-            "basic", 
-            "use-aws", 
-            "tavily-search", 
-            "knowledge base", 
-            "aws_documentation", 
-            "trade_info", 
-            "code interpreter", 
-            "terminal (MAC)", 
-            "terminal (linux)", 
-            "filesystem", 
-            "web_fetch",
-            "drawio",
-            "aws-drawio",
-            "text_extraction",
-            "slack",
-            "사용자 설정"
-        ]
         mcp_selections = {}
 
         plugin_path = os.path.join(plugin.PLUGINS_DIR, mode)
@@ -492,7 +471,7 @@ if prompt := st.chat_input("메시지를 입력하세요."):
                     "notification": [st.empty() for _ in range(500)]
                 }
 
-                response, image_url = asyncio.run(chat.run_langgraph_agent(
+                response, image_url = asyncio.run(langgraph_agent.run_langgraph_agent(
                     query=prompt, 
                     mcp_servers=mcp_servers, 
                     history_mode=history_mode, 
