@@ -11,6 +11,7 @@ import langgraph_agent
 import mcp_config
 import csv
 import PyPDF2
+import skill
 from langchain_core.documents import Document
 from urllib import parse
 
@@ -1557,7 +1558,7 @@ async def run_langgraph_agent(query, mcp_servers, selected_skills, history_mode,
         logger.info(f"get_tools() returned: {tools}")
 
         # skill
-        builtin_tools = langgraph_agent.get_builtin_tools()
+        builtin_tools = skill.get_builtin_tools()
         logger.info(f"builtin_tools: {builtin_tools}")
 
         if skill_mode == "Enable":        

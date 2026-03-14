@@ -7,6 +7,7 @@ import sys
 import os
 import asyncio
 import langgraph_agent
+import skill
 import plugin_agent
 
 from pathlib import Path
@@ -84,8 +85,99 @@ with st.sidebar:
         skill_selections = {}
         default_skill_selections = ["pdf", "search-weather", "notion", "memory-manager"]
         with st.expander("Skill 옵션 선택", expanded=True):
-            skill_list = langgraph_agent.available_skills_list()
+            skill_list = skill.available_skills_list()
             logger.info(f"skill_list: {skill_list}")
+            for skill in skill_list:
+                default_value = skill["name"] in default_skill_selections
+                skill_selections[skill["name"]] = st.checkbox(skill["name"], key=f"skill_{skill['name']}", value=default_value, help=skill["description"], disabled=False)
+    
+        selected_skills = [skill for skill, is_selected in skill_selections.items() if is_selected]
+        logger.info(f"selected_skills: {selected_skills}")
+
+        # MCP Config JSON input
+        st.subheader("⚙️ MCP Config")
+
+        # Change radio to checkbox
+        mcp_options = [
+            "basic", 
+            "use-aws", 
+            "tavily-search", 
+            "knowledge base", 
+            "aws_documentation", 
+            "trade_info", 
+            "code interpreter", 
+            "terminal (MAC)", 
+            "terminal (linux)", 
+            "filesystem", 
+            "web_fetch",
+            "drawio",
+            "aws-drawio",
+            "text_extraction",
+            "slack",
+            "사용자 설정"
+        ]
+        mcp_selections = {}
+        default_selections = ["code interpreter", "aws_documentation"]
+        
+        with st.expander("MCP 옵션 선택", expanded=True):
+            for option in mcp_options:
+                default_value = option in default_selections
+                mcp_selections[option] = st.checkbox(option, key=f"mcp_{option}", value=default_value)
+                
+        if mcp_selections["사용자 설정"]:
+            mcp = {}
+            try:
+                with open("user_defined_mcp.json", "r", encoding="utf-8") as f:
+                    mcp = json.load(f)
+                    logger.info(f"loaded user defined mcp: {mcp}")
+            except FileNotFoundError:
+                logger.info("user_defined_mcp.json not found")
+                pass
+            
+            mcp_json_str = json.dumps(mcp, ensure_ascii=False, indent=2) if mcp else ""
+            
+            mcp_info = st.text_area(
+                "MCP 설정을 JSON 형식으로 입력하세요",
+                value=mcp_json_str,
+                height=150
+            )
+            logger.info(f"mcp_info: {mcp_info}")
+
+            if mcp_info:
+                try:
+                    mcp_config.mcp_user_config = json.loads(mcp_info)
+                    logger.info(f"mcp_user_config: {mcp_config.mcp_user_config}")                    
+                    st.success("JSON 설정이 성공적으로 로드되었습니다.")                    
+                except json.JSONDecodeError as e:
+                    st.error(f"JSON 파싱 오류: {str(e)}")
+                    st.error("올바른 JSON 형식으로 입력해주세요.")
+                    logger.error(f"JSON 파싱 오류: {str(e)}")
+                    mcp_config.mcp_user_config = {}
+            else:
+                mcp_config.mcp_user_config = {}
+                
+            with open("user_defined_mcp.json", "w", encoding="utf-8") as f:
+                json.dump(mcp_config.mcp_user_config, f, ensure_ascii=False, indent=4)
+            logger.info("save to user_defined_mcp.json")
+        
+        mcp_servers = [server for server, is_selected in mcp_selections.items() if is_selected]
+
+    # plugin selection
+    elif mode in [plugin["name"] for plugin in plugin_list]:
+        # Skill Config JSON input
+        st.subheader("⚙️ Skill Config")
+
+        skill_selections = {}
+        default_skill_selections = ["pdf", "search-weather", "notion", "memory-manager"]
+
+        plugin_skill_list = plugin_agent.get_plugin_skills(mode)
+        logger.info(f"plugin_skill_list: {plugin_skill_list}")
+        for skill in plugin_skill_list:
+            default_skill_selections.append(skill["name"])
+
+        with st.expander("Skill 옵션 선택", expanded=True):
+            skill_list = skill.available_skills_list()
+            logger.info(f"default skill_list: {skill_list}")
             for skill in skill_list:
                 default_value = skill["name"] in default_skill_selections
                 skill_selections[skill["name"]] = st.checkbox(skill["name"], key=f"skill_{skill['name']}", value=default_value, help=skill["description"], disabled=False)
