@@ -6,3 +6,7 @@ config.json
 *.md
 *.pptx
 *.drawio
+*.js
+*.drawio
+*.html
+*.css
