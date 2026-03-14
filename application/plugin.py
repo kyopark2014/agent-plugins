@@ -116,18 +116,18 @@ def available_plugins_list():
     return plugin_list
 
 
-def get_plugin_skills(plugin_name: str) -> list:
-    """Return skill names that belong to the given plugin (from plugins/<name>/skills/)."""
-    if plugin_name not in plugin_managers:
-        skills_dir = os.path.join(PLUGINS_DIR, plugin_name, "skills")
-        plugin_managers[plugin_name] = PluginManager(skills_dir)
+# def get_plugin_skills(plugin_name: str) -> list:
+#     """Return skill names that belong to the given plugin (from plugins/<name>/skills/)."""
+#     if plugin_name not in plugin_managers:
+#         skills_dir = os.path.join(PLUGINS_DIR, plugin_name, "skills")
+#         plugin_managers[plugin_name] = PluginManager(skills_dir)
 
-    registry = plugin_managers[plugin_name].registry
+#     registry = plugin_managers[plugin_name].registry
 
-    if not registry:
-        return []
+#     if not registry:
+#         return []
 
-    return [{"name": s.name, "description": s.description} for s in registry.values()]
+#     return [{"name": s.name, "description": s.description} for s in registry.values()]
 
 
 def create_plugin_and_get_skill_instructions(plugin_name: str):

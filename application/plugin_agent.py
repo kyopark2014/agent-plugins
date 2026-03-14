@@ -65,24 +65,19 @@ async def run_plugin_agent(query, mcp_servers, plugin_name, containers):
     # Use plugin-specific get_skill_instructions so plugin skills (e.g. frontend-design)
     # are found from plugins/<name>/skills/, not the global application/skills/
     builtin_tools = plugin.get_builtin_tools()
-    skill_instruction = plugin.create_plugin_and_get_skill_instructions(plugin_name)
+    # skill_instruction = plugin.create_plugin_and_get_skill_instructions(plugin_name)
 
-    # Replace with plugin-aware version that uses PluginManager in order to tool duplication
-    tool_names = {t.name for t in tools}
-    for bt in builtin_tools:
-        if bt.name == "get_skill_instructions":            
-            if "get_skill_instructions" not in tool_names:
-                tools.append(skill_instruction)
-        elif bt.name not in tool_names:
-            tools.append(bt)
-        else:
-            logger.info(f"builtin_tool {bt.name} already in tools")
-
-    # Get plugin-specific skills and register them in SkillManager's registry
-    skill.register_plugin_skills(plugin_name)
-
-    plugin_skills = plugin.get_plugin_skills(plugin_name)
-    logger.info(f"plugin: {plugin_name}, skills: {plugin_skills}")
+    if chat.skill_mode == "Enable":        
+        tool_names = {tool.name for tool in tools}
+        for bt in builtin_tools:
+            if bt.name not in tool_names:
+                tools.append(bt)
+            else:
+                logger.info(f"builtin_tool {bt.name} already in tools")
+        
+    if tools is None:
+        logger.error("tools is None - MCP client failed to get tools")
+        tools = []
 
     tool_list = [tool.name for tool in tools] if tools else []
     logger.info(f"tool_list: {tool_list}")
