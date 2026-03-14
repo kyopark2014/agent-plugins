@@ -86,7 +86,8 @@ with st.sidebar:
         skill_selections = {}
         default_skill_selections = ["pdf", "search-weather", "notion", "memory-manager"]
         with st.expander("Skill 옵션 선택", expanded=True):
-            skill_list = skill.available_skills_list()
+            skill_group = "base"
+            skill_list = skill.available_skills_list(skill_group)
             for s in skill_list:
                 default_value = s["name"] in default_skill_selections
                 skill_selections[s["name"]] = st.checkbox(s["name"], key=f"skill_{s['name']}", value=default_value, help=s["description"], disabled=False)
@@ -190,7 +191,7 @@ with st.sidebar:
         skill_selections = {}
         default_skill_selections = []
         with st.expander("Skill 옵션 선택", expanded=True):
-            skill_list = skill.available_skills_list()
+            skill_list = skill.available_skills_list(mode)
             for s in skill_list:
                 default_value = s["name"] in default_skill_selections
                 skill_selections[s["name"]] = st.checkbox(s["name"], key=f"skill_{s['name']}", value=default_value, help=s["description"], disabled=False)

@@ -65,12 +65,12 @@ MEMORY_SYSTEM_PROMPT = (
     "2. memory_get으로 상세 내용을 확인한 뒤 답변한다\n"
 )
 
-def build_system_prompt(custom_prompt: Optional[str] = None, skills: Optional[list] = None) -> str:
+def build_system_prompt(custom_prompt: Optional[str] = None, skill_group: Optional[str] = None, skill_list: Optional[list] = None) -> str:
     """Assemble the full system prompt with available skills metadata."""
     if custom_prompt:
         base = custom_prompt
-    elif skills:
-        base = skill.build_skill_prompt(skills)
+    elif skill_group:
+        base = skill.build_skill_prompt(skill_group, skill_list)
     else:
         base = BASE_SYSTEM_PROMPT
 
@@ -83,17 +83,19 @@ async def call_model(state: State, config):
     logger.info(f"###### call_model ######")
 
     last_message = state['messages'][-1]
-    logger.info(f"last message: {last_message}")
+    # logger.info(f"last message: {last_message}")
 
     image_url = state.get('image_url', [])
 
     tools = config.get("configurable", {}).get("tools", None)
-    skills = config.get("configurable", {}).get("skills", None)
-    logger.info(f"skills: {skills}")
+    skill_group = config.get("configurable", {}).get("skill_group", None)
+    logger.info(f"skill_group: {skill_group}")
+    skill_list = config.get("configurable", {}).get("skill_list", None)
+    logger.info(f"skill_list: {skill_list}")
 
     custom_prompt = config.get("configurable", {}).get("system_prompt", None)
 
-    system = build_system_prompt(custom_prompt, skills)
+    system = build_system_prompt(custom_prompt, skill_group, skill_list)
     logger.info(f"system prompt: {system}")
 
     reasoning_mode = getattr(chat, 'reasoning_mode', 'Disable')

@@ -1595,7 +1595,8 @@ async def run_langgraph_agent(query, mcp_servers, selected_skills, history_mode,
             "recursion_limit": 100,
             "configurable": {"thread_id": user_id},
             "tools": tools,
-            "skills": selected_skills,
+            "skill_group": "base",
+            "skill_list": selected_skills,
             "system_prompt": None
         }
     else:

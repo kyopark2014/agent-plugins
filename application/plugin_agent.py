@@ -80,7 +80,7 @@ async def run_plugin_agent(query, mcp_servers, plugin_name, containers):
 
     # Get plugin-specific skills and register them in SkillManager's registry
     plugin_skills_dir = os.path.join(plugin.PLUGINS_DIR, plugin_name, "skills")
-    skill.register_plugin_skills(plugin_skills_dir)
+    skill.register_plugin_skills(plugin_name, plugin_skills_dir)
 
     plugin_skills = plugin.get_plugin_skills(plugin_name)
     logger.info(f"plugin: {plugin_name}, skills: {plugin_skills}")
@@ -101,7 +101,8 @@ async def run_plugin_agent(query, mcp_servers, plugin_name, containers):
         "configurable": {
             "thread_id": f"plugin-{plugin_name}",
             "tools": tools,
-            "skills": plugin_skills,
+            "skill_group": plugin_name,
+            "skill_list": plugin_skills,
             "system_prompt": None,
         }
     }

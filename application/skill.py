@@ -116,16 +116,16 @@ class SkillManager:
         body = parts[2].strip()
         return frontmatter, body
 
-    def available_skills_xml(self, skills: Optional[list] = None) -> str:
+    def available_skills_xml(self, skill_list: Optional[list] = None) -> str:
         """Generate <available_skills> XML for the system prompt (metadata only).
         When skills is None, include all registered skills.
         skills can be: None, list of str, or list of dict with 'name' key."""
         if not self.registry:
             return ""
-        if skills is not None:
+        if skill_list is not None:
             skill_names = [
                 item.get("name", item) if isinstance(item, dict) else item
-                for item in skills
+                for item in skill_list
             ]
         else:
             skill_names = None
@@ -144,21 +144,25 @@ class SkillManager:
         skill = self.registry.get(name)
         return skill.instructions if skill else None
 
-skill_manager = None
+# define global skill_managers
+skill_managers: dict[str, SkillManager] = {}
 
 
-def register_plugin_skills(skills_dir: str):
+def register_plugin_skills(skill_group: str, skills_dir: str):
     """Register skills from a plugin's skills directory into SkillManager's registry."""
-    global skill_manager
+    skill_manager = skill_managers.get(skill_group)
     if skill_manager is None:
         skill_manager = SkillManager()
+        skill_managers[skill_group] = skill_manager
+
     skill_manager.discover_plugin_skills(skills_dir)
 
 
-def available_skills_list():
-    global skill_manager
+def available_skills_list(skill_group: str):
+    skill_manager = skill_managers.get(skill_group)
     if skill_manager is None:
         skill_manager = SkillManager()
+        skill_managers[skill_group] = skill_manager
 
     registry = skill_manager.registry
     
@@ -177,7 +181,6 @@ SKILL_SYSTEM_PROMPT = (
     "상황에 맞는 구체적인 세부 정보를 충분히 제공합니다.\n"
     "모르는 질문을 받으면 솔직히 모른다고 말합니다.\n"
     "한국어로 답변하세요.\n\n"
-    "skill을 이용해 사용자의 요청을 수행합니다.\n"
     "## Agent Workflow\n"
     "1. 사용자 입력을 받는다\n"
     "2. 요청에 맞는 skill이 있으면 get_skill_instructions 도구로 상세 지침을 로드한다\n"
@@ -194,9 +197,12 @@ SKILL_USAGE_GUIDE = (
     "3. skill 지침이 없는 일반 질문은 직접 답변하세요.\n"
 )
 
-def build_skill_prompt(skills: list) -> str:
+def build_skill_prompt(skill_group: str, skill_list: list) -> str:
     """Build skill-related prompt: path info, available skills XML, and usage guide."""
-    available_skills_list()  # ensure skill_manager is initialized
+    skill_manager = skill_managers.get(skill_group)
+    if skill_manager is None:
+        skill_manager = SkillManager()
+        skill_managers[skill_group] = skill_manager
 
     path_info = (
         f"## Paths (use absolute paths for write_file, read_file)\n"
@@ -205,7 +211,7 @@ def build_skill_prompt(skills: list) -> str:
         f"Example: write_file(filepath='{os.path.join(ARTIFACTS_DIR, 'report.drawio')}', content='...')\n\n"
     )
 
-    skills_xml = skill_manager.available_skills_xml(skills)
+    skills_xml = skill_manager.available_skills_xml(skill_list)
     if skills_xml:
         return f"{SKILL_SYSTEM_PROMPT}\n{path_info}\n{skills_xml}\n{SKILL_USAGE_GUIDE}"
     return f"{SKILL_SYSTEM_PROMPT}\n{path_info}"
@@ -507,7 +513,7 @@ def memory_get(path: str, from_line: int = 0, lines: int = 0) -> str:
 
 
 @tool
-def get_skill_instructions(skill_name: str) -> str:
+def get_skill_instructions(skill_group: str, skill_name: str) -> str:
     """Load the full instructions for a specific skill by name.
 
     Use this when you need detailed instructions for a task that matches
@@ -518,11 +524,13 @@ def get_skill_instructions(skill_name: str) -> str:
 
     Returns:
         The full skill instructions, or an error message if not found.
-    """
-    global skill_manager
+    """    
+    logger.info(f"###### get_skill_instructions: {skill_name} ######")
+    skill_manager = skill_managers.get(skill_group)
     if skill_manager is None:
         skill_manager = SkillManager()
-    logger.info(f"###### get_skill_instructions: {skill_name} ######")
+        skill_managers[skill_group] = skill_manager
+
     instructions = skill_manager.get_skill_instructions(skill_name)
     if instructions:
         return instructions
