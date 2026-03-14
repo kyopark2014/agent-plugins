@@ -79,6 +79,26 @@ class SkillManager:
                 except Exception as e:
                     logger.warning(f"Failed to load skill '{entry}': {e}")
 
+    def discover_plugin_skills(self, skills_dir: str):
+        """Scan a plugin's skills directory and add to registry (merge, do not replace)."""
+        if not os.path.isdir(skills_dir):
+            return
+        for entry in os.listdir(skills_dir):
+            skill_md = os.path.join(skills_dir, entry, "SKILL.md")
+            if os.path.isfile(skill_md):
+                try:
+                    meta, instructions = self._parse_skill_md(skill_md)
+                    skill = Skill(
+                        name=meta.get("name", entry),
+                        description=meta.get("description", ""),
+                        instructions=instructions,
+                        path=os.path.join(skills_dir, entry),
+                    )
+                    self.registry[skill.name] = skill
+                    logger.info(f"Plugin skill discovered: {skill.name}")
+                except Exception as e:
+                    logger.warning(f"Failed to load plugin skill '{entry}': {e}")
+
     @staticmethod
     def _parse_skill_md(filepath: str) -> tuple[dict, str]:
         """Parse YAML frontmatter + markdown body from a SKILL.md file."""
@@ -98,12 +118,20 @@ class SkillManager:
 
     def available_skills_xml(self, skills: Optional[list] = None) -> str:
         """Generate <available_skills> XML for the system prompt (metadata only).
-        When skills is None, include all registered skills."""
+        When skills is None, include all registered skills.
+        skills can be: None, list of str, or list of dict with 'name' key."""
         if not self.registry:
             return ""
+        if skills is not None:
+            skill_names = [
+                item.get("name", item) if isinstance(item, dict) else item
+                for item in skills
+            ]
+        else:
+            skill_names = None
         lines = ["<available_skills>"]
         for s in self.registry.values():
-            if skills is None or s.name in skills:
+            if skill_names is None or s.name in skill_names:
                 lines.append("  <skill>")
                 lines.append(f"    <name>{s.name}</name>")
                 lines.append(f"    <description>{s.description}</description>")
@@ -117,6 +145,15 @@ class SkillManager:
         return skill.instructions if skill else None
 
 skill_manager = None
+
+
+def register_plugin_skills(skills_dir: str):
+    """Register skills from a plugin's skills directory into SkillManager's registry."""
+    global skill_manager
+    if skill_manager is None:
+        skill_manager = SkillManager()
+    skill_manager.discover_plugin_skills(skills_dir)
+
 
 def available_skills_list():
     global skill_manager
@@ -135,6 +172,20 @@ def available_skills_list():
     return skill_list
 
 
+SKILL_SYSTEM_PROMPT = (
+    "당신의 이름은 서연이고, 질문에 친근한 방식으로 대답하도록 설계된 대화형 AI입니다.\n"
+    "상황에 맞는 구체적인 세부 정보를 충분히 제공합니다.\n"
+    "모르는 질문을 받으면 솔직히 모른다고 말합니다.\n"
+    "한국어로 답변하세요.\n\n"
+    "skill을 이용해 사용자의 요청을 수행합니다.\n"
+    "## Agent Workflow\n"
+    "1. 사용자 입력을 받는다\n"
+    "2. 요청에 맞는 skill이 있으면 get_skill_instructions 도구로 상세 지침을 로드한다\n"
+    "3. skill 지침에 따라 execute_code, write_file 등의 도구를 사용하여 작업을 수행한다\n"
+    "4. 결과 파일이 있으면 upload_file_to_s3로 업로드하여 URL을 제공한다\n"
+    "5. 최종 결과를 사용자에게 전달한다\n\n"
+)
+
 SKILL_USAGE_GUIDE = (
     "\n## Skill 사용 가이드\n"
     "위의 <available_skills>에 나열된 skill이 사용자의 요청과 관련될 때:\n"
@@ -143,13 +194,12 @@ SKILL_USAGE_GUIDE = (
     "3. skill 지침이 없는 일반 질문은 직접 답변하세요.\n"
 )
 
-
 def build_skill_prompt(skills: list) -> str:
     """Build skill-related prompt: path info, available skills XML, and usage guide."""
     available_skills_list()  # ensure skill_manager is initialized
 
     path_info = (
-        f"\n## Paths (use absolute paths for write_file, read_file)\n"
+        f"## Paths (use absolute paths for write_file, read_file)\n"
         f"- WORKING_DIR: {WORKING_DIR}\n"
         f"- ARTIFACTS_DIR: {ARTIFACTS_DIR}\n"
         f"Example: write_file(filepath='{os.path.join(ARTIFACTS_DIR, 'report.drawio')}', content='...')\n\n"
@@ -157,8 +207,8 @@ def build_skill_prompt(skills: list) -> str:
 
     skills_xml = skill_manager.available_skills_xml(skills)
     if skills_xml:
-        return f"{path_info}\n{skills_xml}\n{SKILL_USAGE_GUIDE}"
-    return path_info
+        return f"{SKILL_SYSTEM_PROMPT}\n{path_info}\n{skills_xml}\n{SKILL_USAGE_GUIDE}"
+    return f"{SKILL_SYSTEM_PROMPT}\n{path_info}"
 
 
 # ═══════════════════════════════════════════════════════════════════

@@ -8,6 +8,7 @@ import logging
 import sys
 import langgraph_agent
 import plugin
+import skill
 
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage, AIMessageChunk
 from langchain_mcp_adapters.client import MultiServerMCPClient
@@ -51,7 +52,7 @@ async def run_plugin_agent(query, mcp_servers, plugin_name, containers):
             logger.info("MCP client created successfully")
 
             tools = await client.get_tools()
-            logger.info(f"get_tools() returned: {tools}")
+            # logger.info(f"get_tools() returned: {tools}")
 
             if tools is None:
                 logger.error("tools is None - MCP client failed to get tools")
@@ -72,13 +73,15 @@ async def run_plugin_agent(query, mcp_servers, plugin_name, containers):
         if bt.name == "get_skill_instructions":            
             if "get_skill_instructions" not in tool_names:
                 tools.append(skill_instruction)
-                logger.info("Using plugin-specific get_skill_instructions")
         elif bt.name not in tool_names:
             tools.append(bt)
         else:
             logger.info(f"builtin_tool {bt.name} already in tools")
 
-    # Get plugin-specific skills
+    # Get plugin-specific skills and register them in SkillManager's registry
+    plugin_skills_dir = os.path.join(plugin.PLUGINS_DIR, plugin_name, "skills")
+    skill.register_plugin_skills(plugin_skills_dir)
+
     plugin_skills = plugin.get_plugin_skills(plugin_name)
     logger.info(f"plugin: {plugin_name}, skills: {plugin_skills}")
 
@@ -87,7 +90,7 @@ async def run_plugin_agent(query, mcp_servers, plugin_name, containers):
 
     if not tools:
         logger.warning("No tools available for plugin")
-        result = "MCP 설정을 확인하세요. 플러그인의 mcp_servers.list에 연결된 MCP 서버가 있는지 확인하세요."
+        result = "Check your MCP configuration. Ensure the plugin's mcp_servers.list has connected MCP servers."
         if containers is not None:
             containers['notification'][0].markdown(result)
         return result

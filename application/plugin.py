@@ -19,17 +19,16 @@ logging.basicConfig(
 
 logger = logging.getLogger("plugin-agent")
 
-
 WORKING_DIR = os.path.dirname(os.path.abspath(__file__))
 ARTIFACTS_DIR = os.path.join(WORKING_DIR, "artifacts")
 PLUGINS_DIR = os.path.join(WORKING_DIR, "plugins")
 
 # ═══════════════════════════════════════════════════════════════════
-#  PluginManager – load skills per plugin (see skill.SkillManager)
+#  PluginManager – load skills of plugin
 # ═══════════════════════════════════════════════════════════════════
 @dataclass
 class PluginSkill:
-    """Plugin skill metadata (Anthropic Agent Skills spec)."""
+    """Plugin skill metadata"""
     name: str
     description: str
     instructions: str

@@ -39,13 +39,18 @@ BASE_SYSTEM_PROMPT = (
     "당신의 이름은 서연이고, 질문에 친근한 방식으로 대답하도록 설계된 대화형 AI입니다.\n"
     "상황에 맞는 구체적인 세부 정보를 충분히 제공합니다.\n"
     "모르는 질문을 받으면 솔직히 모른다고 말합니다.\n"
-    "한국어로 답변하세요.\n\n"
-    "## Agent Workflow\n"
-    "1. 사용자 입력을 받는다\n"
-    "2. 요청에 맞는 skill이 있으면 get_skill_instructions 도구로 상세 지침을 로드한다\n"
-    "3. skill 지침에 따라 execute_code, write_file 등의 도구를 사용하여 작업을 수행한다\n"
-    "4. 결과 파일이 있으면 upload_file_to_s3로 업로드하여 URL을 제공한다\n"
-    "5. 최종 결과를 사용자에게 전달한다\n\n"
+    "한국어로 답변하세요.\n"
+
+    "An agent orchestrates the following workflow:\n"
+    "1. Receives user input\n"
+    "2. Processes the input using a language model\n"
+    "3. Decides whether to use tools to gather information or perform actions\n"
+    "4. Executes those tools and receives results\n"
+    "5. Continues reasoning with the new information\n"
+    "6. Produces a final response\n"
+)
+
+MEMORY_SYSTEM_PROMPT = (
     "## 메모리 관리\n"
     "사용자에 대한 정보를 기억하거나, 과거 대화/결정/선호를 찾을 때는 반드시 메모리 도구를 사용하세요:\n"
     "- memory_search: 메모리 파일(MEMORY.md, memory/*.md)에서 키워드 검색\n"
@@ -64,11 +69,11 @@ def build_system_prompt(custom_prompt: Optional[str] = None, skills: Optional[li
     """Assemble the full system prompt with available skills metadata."""
     if custom_prompt:
         base = custom_prompt
+    elif skills:
+        base = skill.build_skill_prompt(skills)
     else:
         base = BASE_SYSTEM_PROMPT
 
-    if skills:
-        return f"{base}\n{skill.build_skill_prompt(skills)}"
     return base
 
 # ═══════════════════════════════════════════════════════════════════
@@ -84,9 +89,12 @@ async def call_model(state: State, config):
 
     tools = config.get("configurable", {}).get("tools", None)
     skills = config.get("configurable", {}).get("skills", None)
+    logger.info(f"skills: {skills}")
+
     custom_prompt = config.get("configurable", {}).get("system_prompt", None)
 
     system = build_system_prompt(custom_prompt, skills)
+    logger.info(f"system prompt: {system}")
 
     reasoning_mode = getattr(chat, 'reasoning_mode', 'Disable')
     chatModel = chat.get_chat(extended_thinking=reasoning_mode)
