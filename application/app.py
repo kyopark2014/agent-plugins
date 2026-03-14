@@ -199,7 +199,7 @@ with st.sidebar:
         skill_selections = {}
         default_skill_selections = config.get("default_skills") or []
         with st.expander("Skill 옵션 선택", expanded=True):
-            skill_meta = skill.available_skills_meta("base")
+            skill_meta = skill.available_skill_meta("base")
             for s in skill_meta:
                 default_value = s["name"] in default_skill_selections
                 skill_selections[s["name"]] = st.checkbox(s["name"], key=f"skill_{s['name']}", value=default_value, help=s["description"], disabled=False)
