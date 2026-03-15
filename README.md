@@ -370,3 +370,7 @@ python uninstaller.py
 
 <img width="1000" alt="image" src="https://github.com/user-attachments/assets/671180f0-dbc0-46eb-b3ee-cf73b2cde5c7" />
 
+
+
+Plugin의 command을 쓰고자 할 때에는 enterprise-search와 같은 plugin을 선택한 후에 아래와 같이 "/search claude의 cowork에서 활용하는 plugin 기능에 대해 설명하고 이를 ppt로 정리하세요."라고 입력합니다. 이렇게 하면 [search.md](./application/plugins/enterprise-search/commands/search.md)에 정의된 search를 이용해 Connector에 있는 MCP들을 조회한 후에 ppt를 생성할 수 있습니다.
+
