@@ -209,6 +209,155 @@ def available_skills_xml(self, skills: list[Skill]) -> str:
     return "\n".join(lines)
 ```
 
+### Command 구현
+
+Claude Pluggin의 주요기능중 하나인 Command는 슬랙시(/)을 통해 command와 명령을 전달할 수 있습니다. [knowledge-work-plugins](https://github.com/anthropics/knowledge-work-plugins)의 enterprise-search에는 [search.md](./application/plugins/enterprise-search/commands/search.md)에서는 한번의 query로 연결된 모든 MCP를 조회하는 기능을 제공합니다. 또한 [digest.md](./application/plugins/enterprise-search/commands/digest.md)에서는 Connector에 연결된 데이터소스들의 최근 활동을 모아서 보여주는 기능을 제공합니다. 이런 기능을 활용하기 위하여 [plugin.py](./application/plugin.py)와 같이 query에 슬랙시(/)가 있는 경우에 첫번째 단어가 command인지 확인합니다. 이때 선택된 plugin에 실제 command에 해당하는 md 파일이 있는지 확인합니다.
+
+```python
+command = None
+if plugin.is_command(query, plugin_name):
+    command = query.split(" ")[0].lstrip("/")
+    logger.info(f"command: {command}")
+
+def is_command(query: str, plugin_name: str) -> bool:
+    """Check if the query is a command."""
+    if plugin_name == "base":
+        return False
+    if not query.startswith("/"):
+        return False
+    command = query.split(" ")[0]
+    command_name = command.lstrip("/").lower()  
+    commands_dir = os.path.join(PLUGINS_DIR, plugin_name, "commands")
+    if not os.path.isdir(commands_dir):
+        return False
+    commands = os.listdir(commands_dir)
+    if command_name + ".md" not in commands:
+        return False
+    else:
+        return True
+```
+
+[plugin_agent.py](./application/plugin_agent.py)와 같이 Command를 가지고 있으면 아래와 같이 agent를 생성할 때에 command를 전달합니다.
+
+```python
+app = langgraph_agent.buildChatAgentWithHistory(tools)
+config = {
+    "recursion_limit": 100,
+    "configurable": {
+        "thread_id": f"plugin-{plugin_name}",
+        "tools": tools,
+        "system_prompt": None,            
+        "plugin_name": plugin_name,
+        "command": command
+    }
+}
+```
+
+[langgraph_agent.py](./application/langgraph_agent.py)의 call_model에서는 command를 가지고 system prompt를 생성합니다.
+
+```python
+async def call_model(state: State, config):
+    last_message = state['messages'][-1]
+
+    plugin_name = config.get("configurable", {}).get("plugin_name", None)    
+    command = config.get("configurable", {}).get("command", None)    
+    system = build_system_prompt(custom_prompt, plugin_name, command)
+    
+    reasoning_mode = getattr(chat, 'reasoning_mode', 'Disable')
+    chatModel = chat.get_chat(extended_thinking=reasoning_mode)
+    model = chatModel.bind_tools(tools)
+
+     prompt = ChatPromptTemplate.from_messages([
+        ("system", system),
+        MessagesPlaceholder(variable_name="messages"),
+    ])
+    chain = prompt | model
+    response = await chain.ainvoke({"messages": messages})
+```    
+
+Command를 위한 system prompt는 plugin으로 부터 command에 대한 description을 추가하고 COMMAND_USAGE_GUIDE를 추가하는 방법으로 아래와 같이 구현합니다.
+
+```python
+COMMAND_USAGE_GUIDE = (
+    "\n## Command 사용 가이드\n"
+    "위의 <command_instructions>에 따라 사용자 요청을 처리하세요.\n"
+    "필요한 경우 get_skill_instructions로 skill 지침을 추가 로드하거나, execute_code, write_file 등 도구를 사용하세요.\n"
+)
+
+def build_command_prompt(plugin_name: str, command: str) -> str:
+    """Build prompt for command mode: path info, command instructions, and available skills."""
+    skill_info = selected_skill_info(plugin_name)
+
+    if plugin_name != "base":
+        default_skill_info = selected_skill_info("base")
+        if default_skill_info:
+            skill_info.extend(default_skill_info)
+
+    path_info = (
+        f"## Paths (use absolute paths for write_file, read_file)\n"
+        f"- WORKING_DIR: {WORKING_DIR}\n"
+        f"- ARTIFACTS_DIR: {ARTIFACTS_DIR}\n"
+        f"Example: write_file(filepath='{os.path.join(ARTIFACTS_DIR, 'report.drawio')}', content='...')\n\n"
+    )
+
+    command_instructions = get_command_instructions(plugin_name, command)
+    command_section = f"## Command Instructions\n<command_instructions>\n{command_instructions}\n</command_instructions>\n\n"
+
+    skills_xml = get_skills_xml(skill_info)
+    skills_section = f"{skills_xml}\n" if skills_xml else ""
+
+    return f"{SKILL_SYSTEM_PROMPT}\n{path_info}\n{command_section}\n{skills_section}\n{COMMAND_USAGE_GUIDE}"
+```
+
+### 배포하기
+
+AWS console의 EC2로 접속하여 [Launch an instance](https://us-west-2.console.aws.amazon.com/ec2/home?region=us-west-2#Instances:)를 선택합니다. [Launch instance]를 선택한 후에 적당한 Name을 입력합니다. (예: es) key pair은 "Proceed without key pair"을 선택하고 넘어갑니다. 
+
+<img width="700" alt="ec2이름입력" src="https://github.com/user-attachments/assets/c551f4f3-186d-4256-8a7e-55b1a0a71a01" />
+
+Instance가 준비되면 [Connet] - [EC2 Instance Connect]를 선택하여 아래처럼 접속합니다. 
+
+<img width="700" alt="image" src="https://github.com/user-attachments/assets/e8a72859-4ac7-46af-b7ae-8546ea19e7a6" />
+
+이후 아래와 같이 python, pip, git, boto3를 설치합니다.
+
+```text
+sudo yum install python3 python3-pip git docker -y
+pip install boto3
+```
+
+Workshop의 경우에 아래 형태로 된 Credential을 복사하여 EC2 터미널에 입력합니다.
+
+<img width="700" alt="credential" src="https://github.com/user-attachments/assets/261a24c4-8a02-46cb-892a-02fb4eec4551" />
+
+아래와 같이 git source를 가져옵니다.
+
+```python
+git clone https://github.com/kyopark2014/agent-plugins
+```
+
+아래와 같이 installer.py를 이용해 설치를 시작합니다.
+
+```python
+cd agent-plugins && python3 installer.py
+```
+
+API 구현에 필요한 credential은 secret으로 관리합니다. 따라서 설치시 필요한 credential 입력이 필요한데 아래와 같은 방식을 활용하여 미리 credential을 준비합니다. 
+
+- 일반 인터넷 검색: [Tavily Search](https://app.tavily.com/sign-in)에 접속하여 가입 후 API Key를 발급합니다. 이것은 tvly-로 시작합니다.  
+- 날씨 검색: [openweathermap](https://home.openweathermap.org/api_keys)에 접속하여 API Key를 발급합니다. 이때 price plan은 "Free"를 선택합니다.
+
+설치가 완료되면 CloudFront로 접속하여 Agent를 실행합니다.
+
+<img width="500" alt="cloudfront_address" src="https://github.com/user-attachments/assets/7ab1a699-eefb-4b55-b214-23cbeeeb7249" />
+
+인프라가 더이상 필요없을 때에는 uninstaller.py를 이용해 제거합니다.
+
+```text
+python uninstaller.py
+```
+
+
 ## 실행결과
 
 
