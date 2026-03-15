@@ -55,9 +55,7 @@ class SkillManager:
     def _discover(self, skills_dir: str):
         """Scan a skills directory and load metadata (frontmatter only) into registry."""
         if not os.path.isdir(skills_dir):
-            if skills_dir == self.skills_dir:
-                os.makedirs(skills_dir, exist_ok=True)
-                logger.info(f"Created skills directory: {skills_dir}")
+            logger.info(f"skills directory is not found: {skills_dir}")
             return
 
         for entry in os.listdir(skills_dir):

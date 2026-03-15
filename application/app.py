@@ -96,6 +96,7 @@ with st.sidebar:
         "slack",
         "notion",
         "outlook",
+        "gog",
         "사용자 설정"
     ]
 
@@ -473,9 +474,9 @@ if prompt := st.chat_input("메시지를 입력하세요."):
                     "notification": [st.empty() for _ in range(500)]
                 }
 
-                # Get plugin-specific skills and register them in SkillManager's registry
-                if skill.skill_managers.get(mode) is None:
-                    skill.register_plugin_skills(mode)
+                # Agent/Agent (Chat) use base skills (application/skills/), not plugin skills
+                if skill.skill_managers.get("base") is None:
+                    skill.register_plugin_skills("base")
 
                 response, image_url = asyncio.run(langgraph_agent.run_langgraph_agent(
                     query=prompt, 
