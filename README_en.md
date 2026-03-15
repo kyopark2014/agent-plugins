@@ -1,6 +1,6 @@
 # Using Plugins with LangGraph
 
-This repository shows how to use [Anthropic's Plugins](https://code.claude.com/docs/en/plugins) with [LangGraph](https://github.com/langchain-ai/langgraph). The agent processes user requests using the [Skill](https://code.claude.com/docs/en/skills) of the selected plugin, and fetches external data via MCP in [Connectors](https://claude.com/connectors#connectors). Data sources used here include [Notion](https://developers.notion.com/guides/mcp/mcp), [Tavily](https://docs.tavily.com/documentation/mcp), [Slack](https://github.com/kyopark2014/mcp/blob/main/mcp-slack.md), and [RAG](./application/mcp_server_retrieve.py). The UI uses Streamlit for convenience, and external access is configured as CloudFront - ALB - EC2. In production, EC2 can be replaced with ECS/EKS for scalability, or a serverless setup such as [AgentCore](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/what-is-bedrock-agentcore.html) can be used.
+This repository shows how to use [Anthropic's Plugins](https://code.claude.com/docs/en/plugins) with [LangGraph](https://github.com/langchain-ai/langgraph). The agent processes user requests using the [Skill](https://code.claude.com/docs/en/skills) of the selected plugin, and fetches external data via MCP in [Connectors](https://platform.claude.com/docs/agents-and-tools/mcp-connector). Data sources used here include [Notion](https://developers.notion.com/guides/mcp/mcp), [Tavily](https://docs.tavily.com/documentation/mcp), [Slack](https://github.com/kyopark2014/mcp/blob/main/mcp-slack.md), and [RAG](./application/mcp_server_retrieve.py). The UI uses Streamlit for convenience, and external access is configured as CloudFront - ALB - EC2. In production, EC2 can be replaced with ECS/EKS for scalability, or a serverless setup such as [AgentCore](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/what-is-bedrock-agentcore.html) can be used.
 
 <img width="1200" alt="image" src="https://github.com/user-attachments/assets/8bd9b991-f577-4bee-8c5f-520caecb041d" />
 
@@ -209,6 +209,155 @@ def available_skills_xml(self, skills: list[Skill]) -> str:
     return "\n".join(lines)
 ```
 
+### Command Implementation
+
+Command is one of the key features of Claude Plugin, allowing commands to be passed via slash (/) syntax. [knowledge-work-plugins](https://github.com/anthropics/knowledge-work-plugins)' enterprise-search provides a search feature in [search.md](./application/plugins/enterprise-search/commands/search.md) that queries all connected MCPs with a single query. [digest.md](./application/plugins/enterprise-search/commands/digest.md) aggregates recent activity from data sources connected to Connectors. To use these features, [plugin.py](./application/plugin.py) checks whether the first word is a command when the query contains a slash (/), and verifies that the selected plugin has an md file corresponding to the actual command.
+
+```python
+command = None
+if plugin.is_command(query, plugin_name):
+    command = query.split(" ")[0].lstrip("/")
+    logger.info(f"command: {command}")
+
+def is_command(query: str, plugin_name: str) -> bool:
+    """Check if the query is a command."""
+    if plugin_name == "base":
+        return False
+    if not query.startswith("/"):
+        return False
+    command = query.split(" ")[0]
+    command_name = command.lstrip("/").lower()  
+    commands_dir = os.path.join(PLUGINS_DIR, plugin_name, "commands")
+    if not os.path.isdir(commands_dir):
+        return False
+    commands = os.listdir(commands_dir)
+    if command_name + ".md" not in commands:
+        return False
+    else:
+        return True
+```
+
+When the agent has a Command, as in [plugin_agent.py](./application/plugin_agent.py), the command is passed when creating the agent as follows.
+
+```python
+app = langgraph_agent.buildChatAgentWithHistory(tools)
+config = {
+    "recursion_limit": 100,
+    "configurable": {
+        "thread_id": f"plugin-{plugin_name}",
+        "tools": tools,
+        "system_prompt": None,            
+        "plugin_name": plugin_name,
+        "command": command
+    }
+}
+```
+
+In [langgraph_agent.py](./application/langgraph_agent.py)'s `call_model`, the system prompt is generated using the command.
+
+```python
+async def call_model(state: State, config):
+    last_message = state['messages'][-1]
+
+    plugin_name = config.get("configurable", {}).get("plugin_name", None)    
+    command = config.get("configurable", {}).get("command", None)    
+    system = build_system_prompt(custom_prompt, plugin_name, command)
+    
+    reasoning_mode = getattr(chat, 'reasoning_mode', 'Disable')
+    chatModel = chat.get_chat(extended_thinking=reasoning_mode)
+    model = chatModel.bind_tools(tools)
+
+     prompt = ChatPromptTemplate.from_messages([
+        ("system", system),
+        MessagesPlaceholder(variable_name="messages"),
+    ])
+    chain = prompt | model
+    response = await chain.ainvoke({"messages": messages})
+```    
+
+The system prompt for Command adds the command description from the plugin and COMMAND_USAGE_GUIDE as follows.
+
+```python
+COMMAND_USAGE_GUIDE = (
+    "\n## Command Usage Guide\n"
+    "Process user requests according to <command_instructions> above.\n"
+    "Use get_skill_instructions to load additional skill instructions if needed, or use tools such as execute_code, write_file, etc.\n"
+)
+
+def build_command_prompt(plugin_name: str, command: str) -> str:
+    """Build prompt for command mode: path info, command instructions, and available skills."""
+    skill_info = selected_skill_info(plugin_name)
+
+    if plugin_name != "base":
+        default_skill_info = selected_skill_info("base")
+        if default_skill_info:
+            skill_info.extend(default_skill_info)
+
+    path_info = (
+        f"## Paths (use absolute paths for write_file, read_file)\n"
+        f"- WORKING_DIR: {WORKING_DIR}\n"
+        f"- ARTIFACTS_DIR: {ARTIFACTS_DIR}\n"
+        f"Example: write_file(filepath='{os.path.join(ARTIFACTS_DIR, 'report.drawio')}', content='...')\n\n"
+    )
+
+    command_instructions = get_command_instructions(plugin_name, command)
+    command_section = f"## Command Instructions\n<command_instructions>\n{command_instructions}\n</command_instructions>\n\n"
+
+    skills_xml = get_skills_xml(skill_info)
+    skills_section = f"{skills_xml}\n" if skills_xml else ""
+
+    return f"{SKILL_SYSTEM_PROMPT}\n{path_info}\n{command_section}\n{skills_section}\n{COMMAND_USAGE_GUIDE}"
+```
+
+### Deployment
+
+Access EC2 from the AWS console and select [Launch an instance](https://us-west-2.console.aws.amazon.com/ec2/home?region=us-west-2#Instances:). After selecting [Launch instance], enter an appropriate Name (e.g., es) and choose "Proceed without key pair" for the key pair.
+
+<img width="700" alt="ec2_name_input" src="https://github.com/user-attachments/assets/c551f4f3-186d-4256-8a7e-55b1a0a71a01" />
+
+When the instance is ready, select [Connect] - [EC2 Instance Connect] to connect as follows.
+
+<img width="700" alt="image" src="https://github.com/user-attachments/assets/e8a72859-4ac7-46af-b7ae-8546ea19e7a6" />
+
+Then install python, pip, git, and boto3 as follows.
+
+```text
+sudo yum install python3 python3-pip git docker -y
+pip install boto3
+```
+
+For workshops, copy the Credential in the format below and enter it in the EC2 terminal.
+
+<img width="700" alt="credential" src="https://github.com/user-attachments/assets/261a24c4-8a02-46cb-892a-02fb4eec4551" />
+
+Clone the git source as follows.
+
+```python
+git clone https://github.com/kyopark2014/agent-plugins
+```
+
+Start the installation using installer.py as follows.
+
+```python
+cd agent-plugins && python3 installer.py
+```
+
+Credentials required for API implementation are managed as secrets. Therefore, credential input is required during installation. Prepare credentials in advance using the following methods:
+
+- General web search: Sign up at [Tavily Search](https://app.tavily.com/sign-in) and obtain an API Key. It starts with tvly-.
+- Weather search: Sign up at [openweathermap](https://home.openweathermap.org/api_keys) and obtain an API Key. Select the "Free" price plan.
+
+After installation is complete, access via CloudFront to run the Agent.
+
+<img width="500" alt="cloudfront_address" src="https://github.com/user-attachments/assets/7ab1a699-eefb-4b55-b214-23cbeeeb7249" />
+
+When the infrastructure is no longer needed, remove it using uninstaller.py.
+
+```text
+python uninstaller.py
+```
+
+
 ## Execution Results
 
 
@@ -220,3 +369,6 @@ After selecting "frontend-design" from the left menu and entering "Design a chat
 The generated Frontend UI is as follows.
 
 <img width="1000" alt="image" src="https://github.com/user-attachments/assets/671180f0-dbc0-46eb-b3ee-cf73b2cde5c7" />
+
+
+To use a Plugin command, select a plugin such as enterprise-search and enter "/search Explain the plugin features used in Claude's cowork and organize them into a ppt." This uses the search defined in [search.md](./application/plugins/enterprise-search/commands/search.md) to query MCPs in the Connector and then generate a ppt.
