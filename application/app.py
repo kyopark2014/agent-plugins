@@ -107,8 +107,8 @@ with st.sidebar:
         default_skill_selections = config.get("default_skills") or ["pdf", "notion", "memory-manager"]
         logger.info(f"default_skill_selections: {default_skill_selections}")
         with st.expander("Skill 옵션 선택", expanded=True):
-            available_skill_meta = skill.available_skill_meta("base")
-            for s in available_skill_meta:
+            available_skill_info = skill.available_skill_info("base")
+            for s in available_skill_info:
                 default_value = s["name"] in default_skill_selections
                 skill_selections[s["name"]] = st.checkbox(s["name"], key=f"skill_{s['name']}", value=default_value, help=s["description"], disabled=False)
     
@@ -176,13 +176,13 @@ with st.sidebar:
         st.subheader("⚙️ Plugin Config")
 
         plugin_skill_selections = {}
-        default_plugin_skill_selections = config.get("plugin_skills", {}).get(mode) or [s["name"] for s in plugin.get_plugin_skills(mode)]
+        default_plugin_skill_selections = config.get("plugin_skills", {}).get(mode) or [s["name"] for s in plugin.available_plugin_skills(mode)]
         logger.info(f"default_plugin_skill_selections: {default_plugin_skill_selections}")
 
         with st.expander("Plugin Skill 옵션 선택", expanded=True):
-            plugin_skill_meta = skill.available_skill_meta(mode)
-            logger.info(f"plugin_skill_meta: {plugin_skill_meta}")
-            for s in plugin_skill_meta:
+            plugin_skill_info = skill.available_skill_info(mode)
+            logger.info(f"plugin_skill_info: {plugin_skill_info}")
+            for s in plugin_skill_info:
                 default_value = s["name"] in default_plugin_skill_selections
                 plugin_skill_selections[s["name"]] = st.checkbox(s["name"], key=f"plugin_skill_{s['name']}", value=default_value, help=s["description"], disabled=False)
     
@@ -201,8 +201,8 @@ with st.sidebar:
         skill_selections = {}
         default_skill_selections = config.get("default_skills") or []
         with st.expander("Skill 옵션 선택", expanded=True):
-            skill_meta = skill.available_skill_meta("base")
-            for s in skill_meta:
+            skill_info = skill.available_skill_info("base")
+            for s in skill_info:
                 default_value = s["name"] in default_skill_selections
                 skill_selections[s["name"]] = st.checkbox(s["name"], key=f"skill_{s['name']}", value=default_value, help=s["description"], disabled=False)
     
@@ -518,7 +518,7 @@ if prompt := st.chat_input("메시지를 입력하세요."):
                             "tools": st.empty(),
                             "status": st.empty(),
                             "notification": [st.empty() for _ in range(500)]
-                        }
+                        }                        
                         response = asyncio.run(plugin_agent.run_plugin_agent(
                             query=prompt, 
                             mcp_servers=mcp_servers,
@@ -526,7 +526,6 @@ if prompt := st.chat_input("메시지를 입력하세요."):
                             containers=containers))
                         logger.info(f"response: {response}")
                         st.session_state.messages.append({"role": "assistant", "content": response})
-                    break
 
 def main():
     """Entry point for the application."""

@@ -36,6 +36,11 @@ async def run_plugin_agent(query, mcp_servers, plugin_name, containers):
     image_url = []
     references = []
 
+    command = None
+    if plugin.is_command(query, plugin_name):
+        command = query.split(" ")[0].lstrip("/")
+        logger.info(f"command: {command}")
+
     # mcp
     mcp_json = mcp_config.load_selected_config(mcp_servers)
     logger.info(f"plugin {plugin_name} mcp_json: {mcp_json}")
@@ -95,8 +100,9 @@ async def run_plugin_agent(query, mcp_servers, plugin_name, containers):
         "configurable": {
             "thread_id": f"plugin-{plugin_name}",
             "tools": tools,
+            "system_prompt": None,            
             "plugin_name": plugin_name,
-            "system_prompt": None,
+            "command": command
         }
     }
 

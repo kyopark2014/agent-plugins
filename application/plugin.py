@@ -116,20 +116,47 @@ def available_plugins_list():
     return plugin_list
 
 
-# def get_plugin_skills(plugin_name: str) -> list:
-#     """Return skill names that belong to the given plugin (from plugins/<name>/skills/)."""
-#     if plugin_name not in plugin_managers:
-#         skills_dir = os.path.join(PLUGINS_DIR, plugin_name, "skills")
-#         plugin_managers[plugin_name] = PluginManager(skills_dir)
+def available_plugin_skills(plugin_name: str) -> list:
+    """Return skill names that belong to the given plugin (from plugins/<name>/skills/)."""
+    if plugin_name not in plugin_managers:
+        skills_dir = os.path.join(PLUGINS_DIR, plugin_name, "skills")
+        plugin_managers[plugin_name] = PluginManager(skills_dir)
 
-#     registry = plugin_managers[plugin_name].registry
+    registry = plugin_managers[plugin_name].registry
 
-#     if not registry:
-#         return []
+    if not registry:
+        return []
 
-#     return [{"name": s.name, "description": s.description} for s in registry.values()]
+    return [{"name": s.name, "description": s.description} for s in registry.values()]
 
+def is_command(query: str, plugin_name: str) -> bool:
+    """Check if the query is a command."""
 
+    logger.info(f"query: {query} - plugin_name: {plugin_name}")
+
+    if plugin_name == "base":
+        return False
+
+    if not query.startswith("/"):
+        return False
+
+    command = query.split(" ")[0]
+    command_name = command.lstrip("/").lower()  # "/search" -> "search"
+    logger.info(f"command: {command} - not confiremed")
+
+    commands_dir = os.path.join(PLUGINS_DIR, plugin_name, "commands")
+    if not os.path.isdir(commands_dir):
+        logger.warning(f"Commands directory not found: {commands_dir}")
+        return False
+
+    commands = os.listdir(commands_dir)
+    if command_name + ".md" not in commands:
+        logger.warning(f"Command not found: {command}")
+        return False
+    else:
+        logger.info(f"command: {command} - confirmed")
+        return True
+    
 def create_plugin_and_get_skill_instructions(plugin_name: str):
     """Create get_skill_instructions tool that uses the plugin's PluginManager.
 

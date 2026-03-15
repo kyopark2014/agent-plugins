@@ -121,9 +121,9 @@ class SkillManager:
 # define global skill_managers
 skill_managers: dict[str, SkillManager] = {}
 
-def get_skills_xml(skill_meta: list) -> str:
+def get_skills_xml(skill_info: list) -> str:
     lines = ["<available_skills>"]
-    for s in skill_meta:
+    for s in skill_info:
         lines.append("  <skill>")
         lines.append(f"    <name>{s['name']}</name>")
         lines.append(f"    <description>{s['description']}</description>")
@@ -146,7 +146,7 @@ def register_plugin_skills(plugin_name: str):
     skill_manager.discover_plugin_skills(skills_dir)
 
 
-def available_skill_meta(plugin_name: str) -> list:
+def available_skill_info(plugin_name: str) -> list:
     skill_manager = skill_managers.get(plugin_name)
     if skill_manager is None:
         if plugin_name == "base": # base skills
@@ -161,14 +161,14 @@ def available_skill_meta(plugin_name: str) -> list:
     if not registry:
         return []
     
-    skill_meta = []
+    skill_info = []
     for s in registry.values():
-        skill_meta.append({"name": s.name, "description": s.description})
+        skill_info.append({"name": s.name, "description": s.description})
         
-    return skill_meta
+    return skill_info
 
 
-def selected_skill_meta(plugin_name: str) -> list:
+def selected_skill_info(plugin_name: str) -> list:
     config = utils.load_config()
     if plugin_name == "base":
         skill_list = config.get("default_skills") or []
@@ -176,13 +176,13 @@ def selected_skill_meta(plugin_name: str) -> list:
         skill_list = config.get("plugin_skills", {}).get(plugin_name) or []
     logger.info(f"plugin_name: {plugin_name}, skill_list: {skill_list}")
 
-    skill_meta = available_skill_meta(plugin_name)
+    skill_info = available_skill_info(plugin_name)
 
-    selected_skill_meta = []
-    for s in skill_meta:
+    selected_skill_info = []
+    for s in skill_info:
         if s["name"] in skill_list:
-            selected_skill_meta.append(s)
-    return selected_skill_meta
+            selected_skill_info.append(s)
+    return selected_skill_info
 
 
 SKILL_SYSTEM_PROMPT = (
@@ -208,14 +208,14 @@ SKILL_USAGE_GUIDE = (
 
 def build_skill_prompt(plugin_name: str) -> str:
     """Build skill-related prompt: path info, available skills XML, and usage guide."""
-    skill_meta = selected_skill_meta(plugin_name)
-    logger.info(f"plugin_name: {plugin_name}, skill_meta: {skill_meta}")
+    skill_info = selected_skill_info(plugin_name)
+    logger.info(f"plugin_name: {plugin_name}, skill_info: {skill_info}")
 
     if plugin_name != "base":
-        default_skill_meta = selected_skill_meta("base")
-        if default_skill_meta:
-            skill_meta.extend(default_skill_meta)
-            logger.info(f"default_skill_meta: {default_skill_meta}")
+        default_skill_info = selected_skill_info("base")
+        if default_skill_info:
+            skill_info.extend(default_skill_info)
+            logger.info(f"default_skill_info: {default_skill_info}")
 
     path_info = (
         f"## Paths (use absolute paths for write_file, read_file)\n"
@@ -224,10 +224,75 @@ def build_skill_prompt(plugin_name: str) -> str:
         f"Example: write_file(filepath='{os.path.join(ARTIFACTS_DIR, 'report.drawio')}', content='...')\n\n"
     )
 
-    skills_xml = get_skills_xml(skill_meta)
+    skills_xml = get_skills_xml(skill_info)
     if skills_xml:
         return f"{SKILL_SYSTEM_PROMPT}\n{path_info}\n{skills_xml}\n{SKILL_USAGE_GUIDE}"
     return f"{SKILL_SYSTEM_PROMPT}\n{path_info}"
+
+def get_command_instructions(plugin_name: str, command_name: str) -> str:
+    """Load the full instructions for a specific command by name.
+
+    Use this when you need detailed instructions for a command.
+    """
+    logger.info(f"###### get_command_instructions: {command_name} ######")
+
+    commands_dir = os.path.join(WORKING_DIR, "plugins", plugin_name, "commands")
+    if not os.path.isdir(commands_dir):
+        return f"Plugin '{plugin_name}' has no commands directory."
+
+    command_name_normalized = command_name.lower().strip()
+    filepath = os.path.join(commands_dir, f"{command_name_normalized}.md")
+
+    if not os.path.isfile(filepath):
+        available = [
+            p[:-3] for p in os.listdir(commands_dir)
+            if p.endswith(".md")
+        ]
+        return f"Command '{command_name}' not found. Available commands: {', '.join(available)}"
+
+    frontmatter, body = SkillManager._parse_skill_md(filepath)
+    # Return body (instructions); optionally prefix with frontmatter summary
+    if frontmatter:
+        desc = frontmatter.get("description", "")
+        hint = frontmatter.get("argument-hint", "")
+        header = f"**{desc}**\n"
+        if hint:
+            header += f"Argument hint: {hint}\n\n"
+        return header + body
+    return body
+
+COMMAND_USAGE_GUIDE = (
+    "\n## Command 사용 가이드\n"
+    "위의 <command_instructions>에 따라 사용자 요청을 처리하세요.\n"
+    "필요한 경우 get_skill_instructions로 skill 지침을 추가 로드하거나, execute_code, write_file 등 도구를 사용하세요.\n"
+)
+
+
+def build_command_prompt(plugin_name: str, command: str) -> str:
+    """Build prompt for command mode: path info, command instructions, and available skills."""
+    skill_info = selected_skill_info(plugin_name)
+    logger.info(f"plugin_name: {plugin_name}, command: {command}, skill_info: {skill_info}")
+
+    if plugin_name != "base":
+        default_skill_info = selected_skill_info("base")
+        if default_skill_info:
+            skill_info.extend(default_skill_info)
+            logger.info(f"default_skill_info: {default_skill_info}")
+
+    path_info = (
+        f"## Paths (use absolute paths for write_file, read_file)\n"
+        f"- WORKING_DIR: {WORKING_DIR}\n"
+        f"- ARTIFACTS_DIR: {ARTIFACTS_DIR}\n"
+        f"Example: write_file(filepath='{os.path.join(ARTIFACTS_DIR, 'report.drawio')}', content='...')\n\n"
+    )
+
+    command_instructions = get_command_instructions(plugin_name, command)
+    command_section = f"## Command Instructions\n<command_instructions>\n{command_instructions}\n</command_instructions>\n\n"
+
+    skills_xml = get_skills_xml(skill_info)
+    skills_section = f"{skills_xml}\n" if skills_xml else ""
+
+    return f"{SKILL_SYSTEM_PROMPT}\n{path_info}\n{command_section}\n{skills_section}\n{COMMAND_USAGE_GUIDE}"
 
 
 # ═══════════════════════════════════════════════════════════════════

@@ -67,10 +67,12 @@ MEMORY_SYSTEM_PROMPT = (
     "2. memory_get으로 상세 내용을 확인한 뒤 답변한다\n"
 )
 
-def build_system_prompt(custom_prompt: Optional[str] = None, plugin_name: Optional[str] = None) -> str:
+def build_system_prompt(custom_prompt: Optional[str] = None, plugin_name: Optional[str] = None, command: Optional[str] = None) -> str:
     """Assemble the full system prompt with available skills metadata."""
     if custom_prompt:
         base = custom_prompt
+    elif command:
+        base = skill.build_command_prompt(plugin_name, command)
     elif plugin_name:
         base = skill.build_skill_prompt(plugin_name)
     else:
@@ -94,9 +96,12 @@ async def call_model(state: State, config):
     plugin_name = config.get("configurable", {}).get("plugin_name", None)
     logger.info(f"plugin_name: {plugin_name}")
     
-    system = build_system_prompt(custom_prompt, plugin_name)
+    command = config.get("configurable", {}).get("command", None)
+    logger.info(f"command: {command}")
+    
+    system = build_system_prompt(custom_prompt, plugin_name, command)
     logger.info(f"system prompt: {system}")
-
+    
     reasoning_mode = getattr(chat, 'reasoning_mode', 'Disable')
     chatModel = chat.get_chat(extended_thinking=reasoning_mode)
 
@@ -140,7 +145,7 @@ async def call_model(state: State, config):
         ])
         chain = prompt | model
 
-        response = await chain.ainvoke(messages)
+        response = await chain.ainvoke({"messages": messages})
         logger.info(f"response of call_model: {response}")
 
     except Exception:
@@ -192,7 +197,7 @@ async def plan_node(state: State, config):
         ])
         chain = prompt | chatModel
 
-        result = await chain.ainvoke(state["messages"])
+        result = await chain.ainvoke({"messages": state["messages"]})
 
         plan = result.content[result.content.find('<plan>')+6:result.content.find('</plan>')]
         logger.info(f"plan: {plan}")
