@@ -138,21 +138,22 @@ async def call_model(state: State, config):
     last_message = state['messages'][-1]
 
     tools = config.get("configurable", {}).get("tools", None)
-    skills = config.get("configurable", {}).get("skills", None)
     custom_prompt = config.get("configurable", {}).get("system_prompt", None)
-    system = build_system_prompt(custom_prompt, skills)
-
+    plugin_name = config.get("configurable", {}).get("plugin_name", None)    
+    command = config.get("configurable", {}).get("command", None)    
+    system = build_system_prompt(custom_prompt, plugin_name, command)
+    
+    reasoning_mode = getattr(chat, 'reasoning_mode', 'Disable')
     chatModel = chat.get_chat(extended_thinking=reasoning_mode)
     model = chatModel.bind_tools(tools)
-        
     prompt = ChatPromptTemplate.from_messages([
         ("system", system),
         MessagesPlaceholder(variable_name="messages"),
     ])
     chain = prompt | model
+    response = await chain.ainvoke({"messages": messages})
 
-    response = await chain.ainvoke(messages)
-    return {"messages": [response]}
+    return {"messages": [response], "image_url": image_url}
 ```
 
 아래와 같이 system prompt에는 WORKING_DIR와 ARTIFACTS_DIR와 같은 path를 포함하고 skill 정보를 포함합니다.
