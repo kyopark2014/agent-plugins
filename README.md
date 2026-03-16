@@ -80,16 +80,12 @@ mcp_json = mcp_config.load_selected_config(mcp_servers)
 
 server_params = langgraph_agent.load_multiple_mcp_server_parameters(mcp_json)
 client = MultiServerMCPClient(server_params)
+tools = await client.get_tools()
 
-builtin_tools = get_builtin_tools()
-plugin_skills = get_plugin_skills(plugin_name)
-tool_names = {t.name for t in tools}
+builtin_tools = plugin.get_builtin_tools()
+tool_names = {tool.name for tool in tools}
 for bt in builtin_tools:
-    if bt.name == "get_skill_instructions":            
-        if "get_skill_instructions" not in tool_names:
-            tools.append(skill_instruction)
-            logger.info("Using plugin-specific get_skill_instructions")
-    elif bt.name not in tool_names:
+    if bt.name not in tool_names:
         tools.append(bt)
     else:
         logger.info(f"builtin_tool {bt.name} already in tools")
@@ -100,8 +96,9 @@ config = {
     "configurable": {
         "thread_id": f"plugin-{plugin_name}",
         "tools": tools,
-        "skills": plugin_skills,
-        "system_prompt": None,
+        "system_prompt": None,            
+        "plugin_name": plugin_name,
+        "command": command
     }
 }
 
