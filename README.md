@@ -192,17 +192,13 @@ def build_system_prompt(custom_prompt: Optional[str] = None, skills: Optional[li
 Skill 정보는 아래와 같이 SkillManager에서 skill에 대한 name과 description 정보를 포함합니다.
 
 ```python
-def available_skills_xml(self, skills: list[Skill]) -> str:
-    """Generate <available_skills> XML for the system prompt (metadata only)."""
-    if not self.registry:
-        return ""
+def get_skills_xml(skill_info: list) -> str:
     lines = ["<available_skills>"]
-    for s in self.registry.values():
-        if s.name in skills:
-            lines.append("  <skill>")
-            lines.append(f"    <name>{s.name}</name>")
-            lines.append(f"    <description>{s.description}</description>")
-            lines.append("  </skill>")
+    for s in skill_info:
+        lines.append("  <skill>")
+        lines.append(f"    <name>{s['name']}</name>")
+        lines.append(f"    <description>{s['description']}</description>")
+        lines.append("  </skill>")
     lines.append("</available_skills>")
     return "\n".join(lines)
 ```
