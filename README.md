@@ -303,6 +303,22 @@ def build_command_prompt(plugin_name: str, command: str) -> str:
     return f"{SKILL_SYSTEM_PROMPT}\n{path_info}\n{command_section}\n{skills_section}\n{COMMAND_USAGE_GUIDE}"
 ```
 
+### MCP
+
+Plugin의 Connector는 MCP를 이용해 구현합니다. 이때 필요한 MCP 설정은 아래를 참조합니다. 
+
+- [Slack](https://github.com/kyopark2014/mcp/blob/main/mcp-slack.md): SLACK_TEAM_ID, SLACK_BOT_TOKEN으로 설정합니다.
+
+- [Tavily](https://github.com/kyopark2014/mcp/blob/main/mcp-tavily.md): [installer.py](./installer.py)에서 secret으로 설정후에 [utils.py](./application/utils.py)에서 TAVILY_API_KEY로 등록하여 활용합니다.
+
+- [RAG](https://github.com/kyopark2014/mcp/blob/main/mcp-rag.md): Knowledge Base를 이용해 RAG를 활용합니다.
+
+- [web_fetch](https://github.com/kyopark2014/mcp/blob/main/mcp-web-fetch.md): playwright기반으로 url의 문서를 markdown으로 불러올 수 있습니다.
+
+- [Google 메일/캘린더](https://github.com/kyopark2014/mcp/blob/main/mcp-gog.md): Gog CLI를 설치하여 google 인증을 통해 활용합니다.
+
+- [Notion](https://github.com/kyopark2014/mcp/blob/main/mcp-notion.md): NOTION_TOKEN을 이용해 notion에 문서를 조회하거나 등록합니다.
+
 ### 배포하기
 
 AWS console의 EC2로 접속하여 [Launch an instance](https://us-west-2.console.aws.amazon.com/ec2/home?region=us-west-2#Instances:)를 선택합니다. [Launch instance]를 선택한 후에 적당한 Name을 입력합니다. (예: es) key pair은 "Proceed without key pair"을 선택하고 넘어갑니다. 
