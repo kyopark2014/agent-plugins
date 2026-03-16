@@ -10,3 +10,4 @@ config.json
 *.drawio
 *.html
 *.css
+*.mjs
