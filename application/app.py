@@ -86,6 +86,8 @@ with st.sidebar:
         "basic", 
         "use-aws", 
         "tavily", 
+        "weather",
+        "korea_weather",
         "knowledge base", 
         "aws_documentation", 
         "trade_info", 

@@ -27,16 +27,6 @@ except Exception as e:
         logger.info(f"{err_msg}")
 
 ######################################
-# Time
-######################################
-@mcp.tool()
-def get_current_time(format: str=f"%Y-%m-%d %H:%M:%S")->str:
-    """Returns the current date and time in the specified format"""
-    logger.info(f"get_current_time --> format: {format}")
-
-    return mcp_basic.get_current_time(format)
-
-######################################
 # Book
 ######################################    
 @mcp.tool()  
@@ -49,20 +39,6 @@ def get_book_list(keyword: str) -> str:
     logger.info(f"get_book_list --> keyword: {keyword}")
 
     return mcp_basic.get_book_list(keyword)
-
-######################################
-# Weather
-######################################
-@mcp.tool()    
-def get_weather_info(city: str) -> str:
-    """
-    retrieve weather information by city name and then return weather statement.
-    city: the English name of city to retrieve
-    return: weather statement
-    """   
-    logger.info(f"get_weather_info --> city: {city}")
-    
-    return mcp_basic.get_weather_info(city)
 
 ######################################
 # Stock
