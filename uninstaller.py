@@ -961,8 +961,9 @@ def delete_secrets():
     logger.info("[6/9] Deleting secrets")
     
     secret_names = [
-        f"openweathermap-{project_name}",
-        f"tavilyapikey-{project_name}"
+        f"tavilyapikey-{project_name}",
+        f"notionapikey-{project_name}",
+        f"slackapikey-{project_name}"
     ]
     
     for secret_name in secret_names:

@@ -253,4 +253,4 @@ def load_plugin_mcp_servers_from_list(plugin_path: str) -> list:
 
 def get_builtin_tools():
     """Return the list of built-in tools for the skill-aware agent."""
-    return [skill.execute_code, skill.write_file, skill.read_file, skill.upload_file_to_s3, skill.get_current_time, skill.get_skill_instructions]
+    return [skill.execute_code, skill.write_file, skill.read_file, skill.upload_file_to_s3, skill.get_skill_instructions]

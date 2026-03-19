@@ -121,23 +121,6 @@ else:
         region_name=bedrock_region
     )
 
-# api key for weather
-weather_api_key = ""
-try:
-    get_weather_api_secret = secretsmanager.get_secret_value(
-        SecretId=f"openweathermap-{projectName}"
-    )
-    #print('get_weather_api_secret: ', get_weather_api_secret)
-    secret = json.loads(get_weather_api_secret['SecretString'])
-    #print('secret: ', secret)
-    weather_api_key = secret['weather_api_key']
-    if weather_api_key:
-        os.environ["OPENWEATHERMAP_API_KEY"] = weather_api_key
-
-except Exception as e:
-    # raise e
-    pass
-
 # api key for slack
 slack_bot_token = ""
 slack_team_id = ""

@@ -6,7 +6,7 @@ import chat
 import utils
 import skill
 import mcp_config
-
+import datetime
 from typing import Literal, Optional
 
 from langgraph.prebuilt import ToolNode
@@ -16,6 +16,8 @@ from langgraph.graph.message import add_messages
 from langchain_core.prompts import MessagesPlaceholder, ChatPromptTemplate
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage, AIMessageChunk
 from langchain_mcp_adapters.client import MultiServerMCPClient
+from langchain_core.tools import tool
+from pytz import timezone
 
 logging.basicConfig(
     level=logging.INFO,
@@ -29,6 +31,17 @@ sharing_url = config.get("sharing_url")
 s3_prefix = "docs"
 capture_prefix = "captures"
 user_id = "langgraph"
+
+@tool
+def get_current_time(format: str=f"%Y-%m-%d %H:%M:%S")->str:
+    """Returns the current date and time in the specified format"""
+    # f"%Y-%m-%d %H:%M:%S"
+    
+    format = format.replace('\'','')
+    timestr = datetime.datetime.now(timezone('Asia/Seoul')).strftime(format)
+    logger.info(f"timestr: {timestr}")
+    
+    return timestr
 
 # ═══════════════════════════════════════════════════════════════════
 #  Agent State & System Prompt
@@ -308,6 +321,9 @@ async def run_langgraph_agent(query: str, mcp_servers: list, plugin_name: Option
 
     image_url = []
     references = []
+    tools = []
+
+    tools.append(get_current_time)
 
     # mcp
     mcp_json = mcp_config.load_selected_config(mcp_servers)
@@ -320,8 +336,7 @@ async def run_langgraph_agent(query: str, mcp_servers: list, plugin_name: Option
         client = MultiServerMCPClient(server_params)
         logger.info(f"MCP client created successfully")
         
-        tools = await client.get_tools()
-        # logger.info(f"get_tools() returned: {tools}")
+        tools.extend(await client.get_tools())        
 
         # skill
         builtin_tools = skill.get_builtin_tools()

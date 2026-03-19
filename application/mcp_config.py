@@ -74,19 +74,7 @@ def load_config(mcp_type):
     elif mcp_type == "AWS Outlook (Employee)":
         mcp_type = "aws_outlook"
 
-    if mcp_type == "basic":
-        return {
-            "mcpServers": {
-                "search": {
-                    "command": "python",
-                    "args": [
-                        f"{workingDir}/mcp_server_basic.py"
-                    ]
-                }
-            }
-        }
-    
-    elif mcp_type == "tavily":
+    if mcp_type == "tavily":
         return {
             "mcpServers": {
                 "tavily-search": {
@@ -288,16 +276,6 @@ def load_config(mcp_type):
                 "gog": {
                     "command": "python",
                     "args": [f"{workingDir}/mcp_server_gog.py"]
-                }
-            }
-        }
-
-    elif mcp_type == "weather":
-        return {
-            "mcpServers": {
-                "weather": {
-                    "command": "python",
-                    "args": [f"{workingDir}/mcp_server_weather.py"]
                 }
             }
         }
