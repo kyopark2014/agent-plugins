@@ -9,6 +9,7 @@ import utils
 import io
 import json
 import yaml
+import datetime
 
 from pathlib import Path
 from dataclasses import dataclass
@@ -16,6 +17,7 @@ from pathlib import Path
 from dataclasses import dataclass, field
 from langchain_core.tools import tool
 from typing import Literal, Optional
+from pytz import timezone
 
 logging.basicConfig(
     level=logging.INFO,
@@ -382,6 +384,16 @@ def execute_code(code: str) -> str:
         logger.error(f"Code execution error: {tb}")
         return f"Error executing code:\n{tb}"
 
+@tool
+def get_current_time(format: str=f"%Y-%m-%d %H:%M:%S")->str:
+    """Returns the current date and time in the specified format"""
+    # f"%Y-%m-%d %H:%M:%S"
+    
+    format = format.replace('\'','')
+    timestr = datetime.datetime.now(timezone('Asia/Seoul')).strftime(format)
+    logger.info(f"timestr: {timestr}")
+    
+    return timestr
 
 @tool
 def write_file(filepath: str, content: str = "") -> str:
@@ -631,5 +643,5 @@ def get_skill_instructions(plugin_name: str, skill_name: str) -> str:
 
 def get_builtin_tools():
     """Return the list of built-in tools for the skill-aware agent."""
-    return [execute_code, write_file, read_file, upload_file_to_s3, memory_search, memory_get, get_skill_instructions]
+    return [execute_code, write_file, read_file, upload_file_to_s3, get_current_time, memory_search, memory_get, get_skill_instructions]
 

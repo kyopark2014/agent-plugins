@@ -1,17 +1,14 @@
 import logging
 import sys
-import datetime
 import requests
 import traceback
 import json
 import re
 import utils
-import os
 import boto3
 import info
 
 from botocore.config import Config
-from pytz import timezone
 from bs4 import BeautifulSoup
 from langchain_aws import ChatBedrock
 from langchain_core.prompts import ChatPromptTemplate
@@ -24,16 +21,6 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger("mcp-basic")
-
-def get_current_time(format: str=f"%Y-%m-%d %H:%M:%S")->str:
-    """Returns the current date and time in the specified format"""
-    # f"%Y-%m-%d %H:%M:%S"
-    
-    format = format.replace('\'','')
-    timestr = datetime.datetime.now(timezone('Asia/Seoul')).strftime(format)
-    logger.info(f"timestr: {timestr}")
-    
-    return timestr
 
 def get_book_list(keyword: str) -> str:
     """
