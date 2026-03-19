@@ -97,6 +97,8 @@ with st.sidebar:
         "notion",
         "outlook",
         "gog",
+        "AWS Sentral (Employee)",
+        "AWS Outlook (Employee)",
         "사용자 설정"
     ]
 
