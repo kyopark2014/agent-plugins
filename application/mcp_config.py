@@ -289,6 +289,16 @@ def load_config(mcp_type):
                 }
             }
         }
+    
+    elif mcp_type == "obsidian":
+        return {
+            "mcpServers": {
+                "obsidian": {
+                    "command": "npx",
+                    "args": ["-y", "obsidian-mcp", os.path.expanduser("~/Documents/memo")]
+                }
+            }
+        }
 
     elif mcp_type == "aws_sentral":
         return {

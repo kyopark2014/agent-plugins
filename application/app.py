@@ -85,7 +85,6 @@ with st.sidebar:
     mcp_options = [
         "use-aws", 
         "tavily", 
-        "korea_weather",
         "knowledge base", 
         "aws_documentation", 
         "trade_info", 
@@ -97,6 +96,8 @@ with st.sidebar:
         "notion",
         "outlook",
         "gog",
+        "korea_weather",
+        "obsidian",
         "AWS Sentral (Employee)",
         "AWS Outlook (Employee)",
         "사용자 설정"
