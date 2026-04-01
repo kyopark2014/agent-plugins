@@ -11,3 +11,14 @@ config.json
 *.html
 *.css
 *.mjs
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.tiff
+*.ico
+*.webp
+*.svg
+*.eps
+*.pdf
