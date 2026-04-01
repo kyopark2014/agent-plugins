@@ -339,8 +339,9 @@ async def run_langgraph_agent(query: str, mcp_servers: list, plugin_name: Option
         tools.extend(await client.get_tools())        
 
         # skill
-        builtin_tools = skill.get_builtin_tools()
+        builtin_tools = chat.get_builtin_tools()
         # logger.info(f"builtin_tools: {builtin_tools}")
+        skill_tools = skill.get_skill_tools()
 
         if chat.skill_mode == "Enable":        
             tool_names = {tool.name for tool in tools}
@@ -349,6 +350,13 @@ async def run_langgraph_agent(query: str, mcp_servers: list, plugin_name: Option
                     tools.append(bt)
                 else:
                     logger.info(f"builtin_tool {bt.name} already in tools")
+
+            tool_names = {tool.name for tool in tools}
+            for st in skill_tools:
+                if st.name not in tool_names:
+                    tools.append(st)
+                else:
+                    logger.info(f"skill_tool {st.name} already in tools")
             
         if tools is None:
             logger.error("tools is None - MCP client failed to get tools")

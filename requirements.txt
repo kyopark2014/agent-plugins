@@ -6,6 +6,9 @@ langchain
 langchain_community
 langgraph
 langchain_experimental
+langgraph-supervisor
+langgraph-swarm
+langchain-text-splitters
 mcp
 langchain-mcp-adapters
 requests
@@ -14,3 +17,29 @@ uv
 graphviz
 rich
 pyyaml
+pandas
+numpy
+tavily-python
+pytz
+beautifulsoup4==4.12.3
+plotly_express==0.4.1
+matplotlib==3.10.0
+opensearch-py
+wikipedia
+aioboto3
+kaleido
+diagrams
+colorama
+finance-datareader
+PyPDF2
+python-pptx
+# Skills: docx / xlsx / pptx / myslide
+defusedxml
+lxml
+openpyxl
+Pillow
+markitdown[pptx]
+# Skills: pdf
+reportlab
+pypdf
+pdfplumber

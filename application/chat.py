@@ -511,7 +511,7 @@ def get_summary_of_uploaded_file(file_name, st):
         if isResized:
             img = img.resize((width, height))
         
-        # Base64 크기 확인 및 추가 리사이징
+        # Check Base64 size and resize further if needed
         max_attempts = 5
         for attempt in range(max_attempts):
             buffer = BytesIO()
@@ -519,14 +519,14 @@ def get_summary_of_uploaded_file(file_name, st):
             img_bytes = buffer.getvalue()
             img_base64 = base64.b64encode(img_bytes).decode("utf-8")
             
-            # Base64 크기 확인 (실제 전송될 크기)
+            # Check Base64 size (actual payload size when sent)
             base64_size = len(img_base64.encode('utf-8'))
             logger.info(f"attempt {attempt + 1}: base64_size = {base64_size} bytes")
             
             if base64_size <= max_size:
                 break
             else:
-                # 크기가 여전히 크면 더 작게 리사이징
+                # If still too large, resize to a smaller dimension
                 width = int(width * 0.8)
                 height = int(height * 0.8)
                 img = img.resize((width, height))
@@ -904,7 +904,7 @@ def summarize_image(image_content, prompt, st):
     width, height = img.size 
     logger.info(f"width: {width}, height: {height}, size: {width*height}")
     
-    # 이미지 리사이징 및 크기 확인
+    # Image resize and size check
     isResized = False
     max_size = 5 * 1024 * 1024  # 5MB in bytes
     
@@ -975,9 +975,9 @@ def summarize_image(image_content, prompt, st):
     logger.info(f"image summary: {image_summary}")
             
     # if len(extracted_text) > 10:
-    #     contents = f"## 이미지 분석\n\n{image_summary}\n\n## 추출된 텍스트\n\n{extracted_text}"
+    #     contents = f"## Image analysis\n\n{image_summary}\n\n## Extracted text\n\n{extracted_text}"
     # else:
-    #     contents = f"## 이미지 분석\n\n{image_summary}"
+    #     contents = f"## Image analysis\n\n{image_summary}"
     contents = f"## 이미지 분석\n\n{image_summary}"
     logger.info(f"image contents: {contents}")
 
@@ -1258,6 +1258,431 @@ sharing_url = config["sharing_url"] if "sharing_url" in config else None
 s3_prefix = "docs"
 capture_prefix = "captures"
 
+def s3_uri_to_console_url(uri: str, region: str) -> str:
+    """Open the object in the AWS S3 console (when sharing_url is not configured)."""
+    if not uri or not uri.startswith("s3://"):
+        return ""
+    rest = uri[5:]
+    parts = rest.split("/", 1)
+    bucket = parts[0]
+    key = parts[1] if len(parts) > 1 else ""
+    enc_key = parse.quote(key, safe="")
+    return f"https://{region}.console.aws.amazon.com/s3/object/{bucket}?prefix={enc_key}"
+
+import io, os, sys, json, traceback
+import subprocess as _subprocess, pathlib as _pathlib, shutil as _shutil
+import tempfile as _tempfile, glob as _glob, datetime as _datetime
+import math as _math, re as _re, requests as _requests
+from urllib.parse import quote
+from langchain_core.tools import tool
+from pathlib import Path
+
+WORKING_DIR = os.path.dirname(os.path.abspath(__file__))
+ARTIFACTS_DIR = os.path.join(WORKING_DIR, "artifacts")
+
+_ARTIFACT_EXT = frozenset({".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp", "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx"})
+
+_mpl_runtime_ready = False
+
+def _artifact_files_mtime_snapshot() -> dict:
+    """Relative paths from WORKING_DIR -> mtime. Only scans under artifacts/."""
+    snap = {}
+    if not os.path.isdir(ARTIFACTS_DIR):
+        return snap
+    for dirpath, _, filenames in os.walk(ARTIFACTS_DIR):
+        for fn in filenames:
+            full = os.path.join(dirpath, fn)
+            try:
+                rel = os.path.relpath(full, WORKING_DIR)
+                snap[rel] = os.path.getmtime(full)
+            except OSError:
+                pass
+    return snap
+
+
+def _touched_artifact_paths(before: dict, after: dict) -> list:
+    """Paths that are new or modified compared to before/after snapshots."""
+    touched = []
+    for rel, mt in after.items():
+        if rel not in before or before[rel] != mt:
+            touched.append(rel)
+    return sorted(touched)
+
+
+def _paths_for_ui(relative_paths: list) -> list:
+    """Absolute paths for images (for UI)."""
+    out = []
+    for rel in relative_paths:
+            out.append(os.path.abspath(os.path.join(WORKING_DIR, rel)))
+    return out
+
+
+def _ensure_matplotlib_runtime():
+    """Use non-interactive Agg backend, prefer CJK-capable fonts, silence headless/show noise."""
+    global _mpl_runtime_ready
+    if _mpl_runtime_ready:
+        return
+    try:
+        import matplotlib
+
+        matplotlib.use("Agg")
+
+        import warnings
+
+        warnings.filterwarnings(
+            "ignore",
+            message=r"Glyph .* missing from font",
+            category=UserWarning,
+        )
+        warnings.filterwarnings(
+            "ignore",
+            message=r"FigureCanvasAgg is non-interactive.*",
+            category=UserWarning,
+        )
+
+        import matplotlib.font_manager as fm
+        import matplotlib as mpl
+
+        mpl.rcParams["axes.unicode_minus"] = False
+        cjk_candidates = (
+            "AppleGothic",
+            "Apple SD Gothic Neo",
+            "Malgun Gothic",
+            "NanumGothic",
+            "NanumBarunGothic",
+            "Noto Sans CJK KR",
+            "Noto Sans KR",
+        )
+        mpl.rcParams["font.family"] = "sans-serif"
+        mpl.rcParams["font.sans-serif"] = list(cjk_candidates) + ["DejaVu Sans", "sans-serif"]
+
+        _mpl_runtime_ready = True
+    except Exception as e:
+        logger.info(f"matplotlib runtime setup skipped: {e}")
+        _mpl_runtime_ready = True
+
+_exec_globals = {
+    "__builtins__": __builtins__,
+    "subprocess": _subprocess,
+    "json": json,
+    "os": os,
+    "sys": sys,
+    "io": io,
+    "pathlib": _pathlib,
+    "shutil": _shutil,
+    "tempfile": _tempfile,
+    "glob": _glob,
+    "datetime": _datetime,
+    "math": _math,
+    "re": _re,
+    "requests": _requests,
+    "WORKING_DIR": WORKING_DIR,
+    "ARTIFACTS_DIR": ARTIFACTS_DIR,
+}
+
+import datetime
+from pytz import timezone
+
+@tool
+def get_current_time(format: str=f"%Y-%m-%d %H:%M:%S")->str:
+    """Returns the current date and time in the specified format"""
+    # f"%Y-%m-%d %H:%M:%S"
+    
+    format = format.replace('\'','')
+    timestr = datetime.datetime.now(timezone('Asia/Seoul')).strftime(format)
+    logger.info(f"timestr: {timestr}")
+    
+    return timestr
+
+@tool
+def execute_code(code: str) -> str:
+    """Execute Python code and return stdout/stderr output.
+
+    Use this tool to run Python code for tasks such as processing data,
+    processing data, or performing computations. The execution environment
+    has access to common libraries: pandas, numpy, matplotlib, seaborn, etc.
+    json, csv, os, requests, etc.
+
+    Variables and imports from previous calls persist across invocations.
+    Generated files should be saved to the 'artifacts/' directory.
+
+    Path variables (pre-defined, do NOT redefine):
+    - WORKING_DIR: absolute path to application directory
+    - ARTIFACTS_DIR: absolute path to artifacts directory (WORKING_DIR/artifacts)
+
+    Args:
+        code: Python code to execute.
+
+    Returns:
+        Captured stdout output, or error traceback if execution failed.
+        If there is a result file, return the path of the file.            
+    """
+    logger.info(f"###### execute_code ######")
+    os.makedirs(ARTIFACTS_DIR, exist_ok=True)
+    before_files = _artifact_files_mtime_snapshot()
+
+    old_cwd = os.getcwd()
+    stdout_capture = io.StringIO()
+    stderr_capture = io.StringIO()
+
+    try:
+        os.chdir(WORKING_DIR)
+        old_stdout, old_stderr = sys.stdout, sys.stderr
+        sys.stdout, sys.stderr = stdout_capture, stderr_capture
+
+        _ensure_matplotlib_runtime()
+        exec(code, _exec_globals)
+
+        sys.stdout, sys.stderr = old_stdout, old_stderr
+        os.chdir(old_cwd)
+
+        output = stdout_capture.getvalue()
+        errors = stderr_capture.getvalue()
+
+        result = ""
+        if output:
+            result += output
+        if errors:
+            result += f"\n[stderr]\n{errors}"
+        if not result.strip():
+            result = "Code executed successfully (no output)."
+
+        after_files = _artifact_files_mtime_snapshot()
+        touched = _touched_artifact_paths(before_files, after_files)
+        artifact_rels = [
+            r
+            for r in touched
+            if os.path.splitext(r)[1].lower() in _ARTIFACT_EXT
+        ]
+        other_rels = [r for r in touched if r not in artifact_rels]
+        if other_rels:
+            lines = "\n".join(
+                os.path.abspath(os.path.join(WORKING_DIR, r)) for r in other_rels
+            )
+            result += f"\n[artifacts]\n{lines}"
+
+        if artifact_rels:
+            payload = {"output": result.strip()}
+            payload["path"] = _paths_for_ui(artifact_rels)
+            return json.dumps(payload, ensure_ascii=False)
+
+        return result
+
+    except Exception as e:
+        sys.stdout, sys.stderr = old_stdout, old_stderr
+        os.chdir(old_cwd)
+        tb = traceback.format_exc()
+        logger.error(f"Code execution error: {tb}")
+        return f"Error executing code:\n{tb}"
+
+@tool
+def write_file(filepath: str, content: str = "") -> str:
+    """Write text content to a file.
+
+    CRITICAL: content must always be passed. Calling without content will fail.
+    Never call without content. Both filepath and content are required in a single call.
+
+    Args:
+        filepath: Absolute path or path relative to WORKING_DIR.
+        content: The text content to write. REQUIRED - must not be omitted. Must include full file content.
+
+    Returns:
+        A success or failure message.
+    """
+    if not content:
+        return (
+            "Error: content parameter is required. "
+            "Pass the full content to save in the form write_file(filepath='path', content='content_to_save')."
+        )
+    logger.info(f"###### write_file: {filepath} ######")
+    try:
+        full_path = filepath if os.path.isabs(filepath) else os.path.join(WORKING_DIR, filepath)
+        parent = os.path.dirname(full_path)
+        if parent:
+            os.makedirs(parent, exist_ok=True)
+        with open(full_path, "w", encoding="utf-8") as f:
+            f.write(content)
+
+        result_msg = f"File saved: {filepath}"
+        return result_msg
+    except Exception as e:
+        return f"Failed to save file: {str(e)}"
+
+
+@tool
+def read_file(filepath: str) -> str:
+    """Read the contents of a local file.
+
+    Args:
+        filepath: Absolute path or path relative to WORKING_DIR.
+
+    Returns:
+        The file contents as text, or an error message.
+    """
+    logger.info(f"###### read_file: {filepath} ######")
+    try:
+        full_path = filepath if os.path.isabs(filepath) else os.path.join(WORKING_DIR, filepath)
+        with open(full_path, "r", encoding="utf-8") as f:
+            return f.read()
+    except Exception as e:
+        return f"Failed to read file: {str(e)}"
+
+
+@tool
+def upload_file_to_s3(filepath: str) -> str:
+    """Upload a local file to S3 and return the download URL.
+
+    Args:
+        filepath: Path relative to the working directory (e.g. 'artifacts/report.pdf').
+
+    Returns:
+        The download URL, or an error message.
+    """
+    logger.info(f"###### upload_file_to_s3: {filepath} ######")
+    try:
+        import boto3
+        from urllib import parse as url_parse
+
+        s3_bucket = config.get("s3_bucket")
+        if not s3_bucket:
+            return "S3 bucket is not configured."
+
+        full_path = os.path.join(WORKING_DIR, filepath)
+        if not os.path.exists(full_path):
+            return f"File not found: {filepath}"
+
+        content_type = utils.get_contents_type(filepath)
+        s3 = boto3.client("s3", region_name=config.get("region", "us-west-2"))
+
+        with open(full_path, "rb") as f:
+            s3.put_object(Bucket=s3_bucket, Key=filepath, Body=f.read(), ContentType=content_type)
+
+        if sharing_url:
+            url = f"{sharing_url}/{url_parse.quote(filepath)}"
+            return f"Upload complete: {url}"
+        return f"Upload complete: {s3_uri_to_console_url(f"s3://{s3_bucket}/{filepath}", config.get("region", "us-west-2"))}"
+
+    except Exception as e:
+        return f"Upload failed: {str(e)}"
+
+@tool
+def memory_search(query: str, max_results: int = 5, min_score: float = 0.0) -> str:
+    """Search across memory files (MEMORY.md and memory/*.md) for relevant information.
+
+    Performs keyword-based search over all memory files and returns matching snippets
+    ranked by relevance score.
+
+    Args:
+        query: Search query string.
+        max_results: Maximum number of results to return (default: 5).
+        min_score: Minimum relevance score threshold 0.0-1.0 (default: 0.0).
+
+    Returns:
+        JSON array of matching snippets with text, path, from (line), lines, and score.
+    """
+    import re as _re
+    logger.info(f"###### memory_search: {query} ######")
+
+    memory_root = Path(WORKING_DIR)
+    memory_dir = memory_root / "memory"
+
+    target_files = []
+    memory_md = memory_root / "MEMORY.md"
+    if memory_md.exists():
+        target_files.append(memory_md)
+    if memory_dir.exists():
+        target_files.extend(sorted(memory_dir.glob("*.md"), reverse=True))
+
+    if not target_files:
+        return json.dumps([], ensure_ascii=False)
+
+    query_lower = query.lower()
+    query_tokens = [t for t in _re.split(r'\s+', query_lower) if len(t) >= 2]
+
+    results = []
+    for fpath in target_files:
+        try:
+            content = fpath.read_text(encoding="utf-8")
+        except Exception:
+            continue
+
+        lines = content.split("\n")
+        content_lower = content.lower()
+
+        if not any(tok in content_lower for tok in query_tokens):
+            continue
+
+        window_size = 5
+        for i in range(0, len(lines), window_size):
+            chunk_lines = lines[i:i + window_size]
+            chunk_text = "\n".join(chunk_lines)
+            chunk_lower = chunk_text.lower()
+
+            matched_tokens = sum(1 for tok in query_tokens if tok in chunk_lower)
+            if matched_tokens == 0:
+                continue
+
+            score = matched_tokens / len(query_tokens) if query_tokens else 0.0
+
+            if score >= min_score:
+                rel_path = str(fpath.relative_to(memory_root))
+                results.append({
+                    "text": chunk_text.strip(),
+                    "path": rel_path,
+                    "from": i + 1,
+                    "lines": len(chunk_lines),
+                    "score": round(score, 3),
+                })
+
+    results.sort(key=lambda x: x["score"], reverse=True)
+    results = results[:max_results]
+
+    return json.dumps(results, indent=2, ensure_ascii=False)
+
+
+@tool
+def memory_get(path: str, from_line: int = 0, lines: int = 0) -> str:
+    """Read a specific memory file (MEMORY.md or memory/*.md).
+
+    Use after memory_search to get full context, or when you know the exact file path.
+
+    Args:
+        path: Workspace-relative path (e.g. "MEMORY.md", "memory/2026-03-02.md").
+        from_line: Starting line number, 1-indexed (0 = read from beginning).
+        lines: Number of lines to read (0 = read entire file).
+
+    Returns:
+        JSON with 'text' (file content) and 'path'. Returns empty text if file doesn't exist.
+    """
+    logger.info(f"###### memory_get: {path} ######")
+
+    full_path = Path(WORKING_DIR) / path
+
+    if not full_path.exists():
+        return json.dumps({"text": "", "path": path}, ensure_ascii=False)
+
+    try:
+        content = full_path.read_text(encoding="utf-8")
+
+        if from_line > 0 or lines > 0:
+            all_lines = content.split("\n")
+            start = max(0, from_line - 1)
+            if lines > 0:
+                end = start + lines
+                content = "\n".join(all_lines[start:end])
+            else:
+                content = "\n".join(all_lines[start:])
+
+        return json.dumps({"text": content, "path": path}, ensure_ascii=False)
+
+    except Exception as e:
+        return json.dumps({"text": f"Error reading file: {e}", "path": path}, ensure_ascii=False)
+
+
+def get_builtin_tools() -> list:
+    """Return the list of built-in tools for the skill-aware agent."""
+    return [execute_code, write_file, read_file, upload_file_to_s3, get_current_time]
+
 def get_tool_info(tool_name, tool_content):
     tool_references = []    
     urls = []
@@ -1302,16 +1727,16 @@ def get_tool_info(tool_name, tool_content):
     # aws document
     elif tool_name == "search_documentation":
         try:
-            # tool_content가 리스트인 경우 처리 (예: [{'type': 'text', 'text': '...'}])
+            # Handle tool_content when it is a list (e.g. [{'type': 'text', 'text': '...'}])
             if isinstance(tool_content, list):
-                # 리스트의 첫 번째 항목에서 text 필드 추출
+                # Extract the text field from the first list item
                 if len(tool_content) > 0 and isinstance(tool_content[0], dict) and 'text' in tool_content[0]:
                     tool_content = tool_content[0]['text']
                 else:
                     logger.info(f"Unexpected list format: {tool_content}")
                     return content, urls, tool_references
             
-            # tool_content가 문자열인 경우 JSON 파싱
+            # Parse JSON when tool_content is a string
             if isinstance(tool_content, str):
                 json_data = json.loads(tool_content)
             elif isinstance(tool_content, dict):
@@ -1320,10 +1745,10 @@ def get_tool_info(tool_name, tool_content):
                 logger.info(f"Unexpected tool_content type: {type(tool_content)}")
                 return content, urls, tool_references
             
-            # search_results 배열에서 결과 추출
+            # Extract results from the search_results array
             search_results = json_data.get('search_results', [])
             if not search_results:
-                # search_results가 없으면 json_data 자체가 배열일 수 있음
+                # If search_results is missing, json_data itself may be an array
                 if isinstance(json_data, list):
                     search_results = json_data
                 else:
@@ -1487,10 +1912,10 @@ def get_tool_info(tool_name, tool_content):
                 for item in json_data:
                     if isinstance(item, dict) and "text" in item:
                         try:
-                            # text 필드 안의 JSON 문자열 파싱
+                            # Parse JSON string inside the text field
                             text_json = json.loads(item["text"])
                             if isinstance(text_json, list):
-                                # 파싱된 JSON이 리스트인 경우
+                                # Parsed JSON is a list
                                 for ref_item in text_json:
                                     if isinstance(ref_item, dict) and "reference" in ref_item and "contents" in ref_item:
                                         url = ref_item["reference"]["url"]
@@ -1502,7 +1927,7 @@ def get_tool_info(tool_name, tool_content):
                                             "content": content_text
                                         })
                             elif isinstance(text_json, dict) and "reference" in text_json and "contents" in text_json:
-                                # 파싱된 JSON이 딕셔너리인 경우
+                                # Parsed JSON is a dict
                                 url = text_json["reference"]["url"]
                                 title = text_json["reference"]["title"]
                                 content_text = text_json["contents"][:100] + "..." if len(text_json["contents"]) > 100 else text_json["contents"]
@@ -1515,7 +1940,7 @@ def get_tool_info(tool_name, tool_content):
                             logger.warning(f"Failed to parse text JSON: {e}")
                             pass
                     elif isinstance(item, dict) and "reference" in item and "contents" in item:
-                        # 리스트 항목이 직접 reference를 가지고 있는 경우
+                        # List item has reference/contents directly
                         url = item["reference"]["url"]
                         title = item["reference"]["title"]
                         content_text = item["contents"][:100] + "..." if len(item["contents"]) > 100 else item["contents"]
