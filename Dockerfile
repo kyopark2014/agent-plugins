@@ -18,9 +18,9 @@ RUN apt-get update && apt-get install -y curl && \
 RUN npm install -g @modelcontextprotocol/server-filesystem
 
 # PPT npm packages (global + local so require() works from any directory, including /tmp)
-RUN npm install -g pptxgenjs sharp react react-dom react-icons && \
+RUN npm install -g pptxgenjs sharp react react-dom react-icons docx && \
     mkdir -p /app/node_modules && \
-    npm install --prefix /app pptxgenjs sharp react react-dom react-icons
+    npm install --prefix /app pptxgenjs sharp react react-dom react-icons docx
 
 # Allow require('pptxgenjs') to resolve from any working directory
 ENV NODE_PATH=/usr/local/lib/node_modules:/app/node_modules
@@ -43,6 +43,8 @@ RUN pip install python-pptx
 RUN pip install defusedxml lxml openpyxl Pillow "markitdown[pptx]"
 # Skills: pdf
 RUN pip install reportlab pypdf pdfplumber PyYAML
+# Skills: browser automation
+RUN pip install "browser-use[cli]"
 
 RUN mkdir -p /root/.streamlit
 COPY config.toml /root/.streamlit/

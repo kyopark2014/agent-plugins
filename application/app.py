@@ -98,6 +98,7 @@ with st.sidebar:
         "gog",
         "korea_weather",
         "obsidian",
+        "image_generation",
         "AWS Sentral (Employee)",
         "AWS Outlook (Employee)",
         "사용자 설정"

@@ -290,6 +290,16 @@ def load_config(mcp_type):
             }
         }
     
+    elif mcp_type == "image_generation":
+        return {
+            "mcpServers": {
+                "image_generation": {
+                    "command": "npx",
+                    "args": ["-y", "image-generation-mcp"]
+                }
+            }
+        }
+        
     elif mcp_type == "obsidian":
         return {
             "mcpServers": {

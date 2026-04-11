@@ -59,6 +59,31 @@ _ARTIFACT_EXT = frozenset({".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".b
 
 _mpl_runtime_ready = False
 
+def _ensure_cli_scripts_on_path() -> None:
+    """Prepend pip user script dir so CLIs (e.g. browser-use) resolve in subprocess."""
+    import site
+    import sysconfig
+
+    extra: list[str] = []
+    user_base = getattr(site, "USER_BASE", None)
+    if user_base:
+        user_bin = os.path.join(user_base, "bin")
+        if os.path.isdir(user_bin):
+            extra.append(user_bin)
+    try:
+        scripts = sysconfig.get_path("scripts")
+        if scripts and os.path.isdir(scripts):
+            extra.append(scripts)
+    except Exception:
+        pass
+    path = os.environ.get("PATH", "")
+    parts = [p for p in path.split(os.pathsep) if p]
+    for d in reversed(extra):
+        if d and d not in parts:
+            parts.insert(0, d)
+    os.environ["PATH"] = os.pathsep.join(parts)
+
+
 def _artifact_files_mtime_snapshot() -> dict:
     """Relative paths from WORKING_DIR -> mtime. Only scans under artifacts/."""
     snap = {}
@@ -205,6 +230,7 @@ def execute_code(code: str) -> str:
         old_stdout, old_stderr = sys.stdout, sys.stderr
         sys.stdout, sys.stderr = stdout_capture, stderr_capture
 
+        _ensure_cli_scripts_on_path()
         _ensure_matplotlib_runtime()
         exec(code, _exec_globals)
 
