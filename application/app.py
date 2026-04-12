@@ -487,7 +487,6 @@ if prompt := st.chat_input("메시지를 입력하세요."):
                     query=prompt, 
                     mcp_servers=mcp_servers, 
                     history_mode=history_mode, 
-                    plugin_name="base",
                     containers=containers))
 
             st.session_state.messages.append({
@@ -529,6 +528,7 @@ if prompt := st.chat_input("메시지를 입력하세요."):
                             query=prompt, 
                             mcp_servers=mcp_servers,
                             plugin_name=plugin["name"],
+                            history_mode="Enable",
                             containers=containers))
                         logger.info(f"response: {response}")
                         st.session_state.messages.append({"role": "assistant", "content": response})

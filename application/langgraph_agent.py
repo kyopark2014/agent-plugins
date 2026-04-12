@@ -8,8 +8,9 @@ import utils
 import skill
 import mcp_config
 import datetime
+import boto3
+        
 from typing import Literal, Optional
-
 from langgraph.prebuilt import ToolNode
 from langgraph.graph import START, END, StateGraph
 from typing_extensions import Annotated, TypedDict
@@ -17,9 +18,10 @@ from langgraph.graph.message import add_messages
 from langchain_core.prompts import MessagesPlaceholder, ChatPromptTemplate
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage, AIMessageChunk
 from langchain_mcp_adapters.client import MultiServerMCPClient
-from langchain_core.tools import tool
 from pytz import timezone
+from langchain_core.tools import tool
 from urllib import parse
+from urllib import parse as url_parse
 
 logging.basicConfig(
     level=logging.INFO,
@@ -34,7 +36,8 @@ s3_prefix = "docs"
 capture_prefix = "captures"
 user_id = "langgraph"
 
-
+s3_bucket = config.get("s3_bucket")
+        
 def s3_uri_to_console_url(uri: str, region: str) -> str:
     """Open the object in the AWS S3 console (when sharing_url is not configured)."""
     if not uri or not uri.startswith("s3://"):
@@ -57,7 +60,7 @@ from pathlib import Path
 WORKING_DIR = os.path.dirname(os.path.abspath(__file__))
 ARTIFACTS_DIR = os.path.join(WORKING_DIR, "artifacts")
 
-_ARTIFACT_EXT = frozenset({".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp", "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx"})
+ARTIFACT_EXT = frozenset({".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp", "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx"})
 
 _mpl_runtime_ready = False
 
@@ -87,7 +90,7 @@ def _ensure_cli_scripts_on_path() -> None:
 
 
 def _artifact_files_mtime_snapshot() -> dict:
-    """Relative paths from WORKING_DIR -> mtime. Only scans under artifacts/."""
+    """Relative path from WORKING_DIR -> mtime. Only scans under artifacts/."""
     snap = {}
     if not os.path.isdir(ARTIFACTS_DIR):
         return snap
@@ -103,7 +106,7 @@ def _artifact_files_mtime_snapshot() -> dict:
 
 
 def _touched_artifact_paths(before: dict, after: dict) -> list:
-    """Paths that are new or modified compared to before/after snapshots."""
+    """Only files created or modified between pre/post execution snapshots."""
     touched = []
     for rel, mt in after.items():
         if rel not in before or before[rel] != mt:
@@ -112,7 +115,7 @@ def _touched_artifact_paths(before: dict, after: dict) -> list:
 
 
 def _paths_for_ui(relative_paths: list) -> list:
-    """Absolute paths for images (for UI)."""
+    """absolute path for Streamlit st.image."""
     out = []
     for rel in relative_paths:
             out.append(os.path.abspath(os.path.join(WORKING_DIR, rel)))
@@ -182,9 +185,6 @@ _exec_globals = {
     "ARTIFACTS_DIR": ARTIFACTS_DIR,
 }
 
-import datetime
-from pytz import timezone
-
 @tool
 def get_current_time(format: str=f"%Y-%m-%d %H:%M:%S")->str:
     """Returns the current date and time in the specified format"""
@@ -234,6 +234,15 @@ def execute_code(code: str) -> str:
 
         _ensure_cli_scripts_on_path()
         _ensure_matplotlib_runtime()
+
+        node_modules = os.path.join(WORKING_DIR, "node_modules")
+        if os.path.isdir(node_modules):
+            existing = os.environ.get("NODE_PATH", "")
+            if node_modules not in existing.split(os.pathsep):
+                os.environ["NODE_PATH"] = (
+                    f"{node_modules}{os.pathsep}{existing}" if existing else node_modules
+                )
+
         exec(code, _exec_globals)
 
         sys.stdout, sys.stderr = old_stdout, old_stderr
@@ -255,7 +264,7 @@ def execute_code(code: str) -> str:
         artifact_rels = [
             r
             for r in touched
-            if os.path.splitext(r)[1].lower() in _ARTIFACT_EXT
+            if os.path.splitext(r)[1].lower() in ARTIFACT_EXT
         ]
         other_rels = [r for r in touched if r not in artifact_rels]
         if other_rels:
@@ -342,11 +351,7 @@ def upload_file_to_s3(filepath: str) -> str:
         The download URL, or an error message.
     """
     logger.info(f"###### upload_file_to_s3: {filepath} ######")
-    try:
-        import boto3
-        from urllib import parse as url_parse
-
-        s3_bucket = config.get("s3_bucket")
+    try:        
         if not s3_bucket:
             return "S3 bucket is not configured."
 
@@ -502,7 +507,7 @@ def bash(command: str) -> str:
 
 def get_builtin_tools() -> list:
     """Return the list of built-in tools for the skill-aware agent."""
-    return [execute_code, write_file, read_file, bash, upload_file_to_s3, get_current_time]
+    return [execute_code, write_file, bash, read_file, upload_file_to_s3, get_current_time]
 
 # ═══════════════════════════════════════════════════════════════════
 #  Agent State & System Prompt
@@ -541,12 +546,10 @@ MEMORY_SYSTEM_PROMPT = (
     "2. memory_get으로 상세 내용을 확인한 뒤 답변한다\n"
 )
 
-def build_system_prompt(custom_prompt: Optional[str] = None, plugin_name: Optional[str] = None, command: Optional[str] = None) -> str:
+def build_system_prompt(custom_prompt: Optional[str] = None, plugin_name: Optional[str] = None) -> str:
     """Assemble the full system prompt with available skills metadata."""
     if custom_prompt:
         base = custom_prompt
-    elif command:
-        base = skill.build_command_prompt(plugin_name, command)
     elif plugin_name:
         base = skill.build_skill_prompt(plugin_name)
     else:
@@ -560,28 +563,13 @@ def build_system_prompt(custom_prompt: Optional[str] = None, plugin_name: Option
 async def call_model(state: State, config):
     logger.info(f"###### call_model ######")
 
-    last_message = state['messages'][-1]
-    # logger.info(f"last message: {last_message}")
-
     image_url = state.get('image_url', [])
 
-    tools = config.get("configurable", {}).get("tools", None)
-    custom_prompt = config.get("configurable", {}).get("system_prompt", None)
-    plugin_name = config.get("configurable", {}).get("plugin_name", None)
-    logger.info(f"plugin_name: {plugin_name}")
-    
-    command = config.get("configurable", {}).get("command", None)
-    logger.info(f"command: {command}")
-    
-    system = build_system_prompt(custom_prompt, plugin_name, command)
-    logger.info(f"system prompt: {system}")
-    
+    tools = config.get("configurable", {}).get("tools")
+    system = config.get("configurable", {}).get("system_prompt")
+
     reasoning_mode = getattr(chat, 'reasoning_mode', 'Disable')
     chatModel = chat.get_chat(extended_thinking=reasoning_mode)
-
-    if tools is None:
-        logger.warning("tools is None, using empty list")
-        tools = []
 
     model = chatModel.bind_tools(tools)
 
@@ -776,7 +764,7 @@ def load_multiple_mcp_server_parameters(mcp_json: dict):
                 }
     return server_info
 
-async def create_agent(mcp_servers: list, plugin_name: Optional[str]=None, history_mode: str="Disable", containers: Optional[dict]=None) -> tuple[str, list]:
+async def create_agent(mcp_servers: list, history_mode: str="Disable") -> tuple[str, list]:
     # builtin tools
     tools = get_builtin_tools()
     logger.info(f"builtin_tools count: {len(tools)}")
@@ -800,35 +788,26 @@ async def create_agent(mcp_servers: list, plugin_name: Optional[str]=None, histo
                 tools.append(tool)
             else:
                 logger.info(f"mcp_tool of {tool.name} already in tools")
-        
+
     except Exception as e:
         logger.error(f"Error creating MCP client or getting tools: {e}")
         logger.info(f"Falling back to builtin tools only (count: {len(tools)})")
+        
+    system_prompt = None
+    if chat.skill_mode == "Enable":        
+        tools.extend(skill.get_skill_tools())
 
-    if chat.skill_mode == "Enable":       
-        try: 
-            skill_tools = skill.get_skill_tools()
-            logger.info(f"skill_tools count: {len(skill_tools)}")
+        skill_info = skill.selected_skill_info("base")
+        system_prompt = skill.build_skill_prompt(skill_info)
 
-            tool_names = {tool.name for tool in tools}
-            for st in skill_tools:
-                if st.name not in tool_names:
-                    tools.append(st)
-                else:
-                    logger.info(f"skill_tool of {st.name} already in tools")
-
-        except Exception as e:
-            logger.error(f"Error loading skill tools: {e}")
-
+    else:
+        system_prompt = BASE_SYSTEM_PROMPT
+        
     tool_list = [tool.name for tool in tools] if tools else []
     logger.info(f"tool_list: {tool_list}")
-    
-    # If no tools available, use general conversation
+
     if not tools:
         logger.warning("No tools available, using general conversation mode")
-        result = "Tool 설정을 확인하세요."
-        if containers is not None:
-            containers['notification'][0].markdown(result)
         return None, None
     
     if history_mode == "Enable":
@@ -837,8 +816,7 @@ async def create_agent(mcp_servers: list, plugin_name: Optional[str]=None, histo
             "recursion_limit": 100,
             "configurable": {"thread_id": user_id},
             "tools": tools,
-            "plugin_name": plugin_name,
-            "system_prompt": None
+            "system_prompt": system_prompt
         }
     else:
         app = buildChatAgent(tools)
@@ -846,18 +824,17 @@ async def create_agent(mcp_servers: list, plugin_name: Optional[str]=None, histo
             "recursion_limit": 100,
             "configurable": {"thread_id": user_id},
             "tools": tools,
-            "plugin_name": plugin_name,
-            "system_prompt": None
+            "system_prompt": system_prompt
         }        
     
     return app, config
 
 app = config = None
 active_mcp_servers = []
-active_plugin_name = None
+active_skills = []
 
-async def run_langgraph_agent(query: str, mcp_servers: list, plugin_name: Optional[str]=None, history_mode: str="Disable", containers: Optional[dict]=None) -> tuple[str, list]:
-    global app, config, active_mcp_servers, active_plugin_name
+async def run_langgraph_agent(query: str, mcp_servers: list, history_mode: str="Disable", containers: Optional[dict]=None) -> tuple[str, list]:
+    global app, config, active_mcp_servers, active_skills
     
     chat.index = 0
     chat.streaming_index = 0
@@ -865,15 +842,18 @@ async def run_langgraph_agent(query: str, mcp_servers: list, plugin_name: Option
     image_url = []
     references = []
 
-    if app is None or mcp_servers != active_mcp_servers or plugin_name != active_plugin_name:
-        active_mcp_servers = mcp_servers
-        active_plugin_name = plugin_name
-        app, config = await create_agent(mcp_servers, plugin_name, history_mode, containers)
+    selected_skill_info = skill.selected_skill_info("base")
 
+    if app is None or mcp_servers != active_mcp_servers or active_skills != selected_skill_info:
+        active_mcp_servers = mcp_servers
+        active_skills = selected_skill_info
+
+        app, config = await create_agent(mcp_servers, history_mode)
+    
     if app is None:
         logger.error("Failed to create agent - app is None")
         return "에이전트를 생성할 수 없습니다. MCP 서버 설정 또는 도구 구성을 확인해주세요.", []
-
+    
     inputs = {
         "messages": [HumanMessage(content=query)]
     }

@@ -11,18 +11,18 @@ Knows what sources are available, helps connect new ones, and manages how source
 
 ## Checking Available Sources
 
-Determine which MCP sources are connected by checking available tools. Each source corresponds to a set of MCP tools:
+Determine which MCP sources are connected by checking your **actual tool list**. Match tool name patterns to identify connected sources:
 
-| Source | Key capabilities |
-|--------|-----------------|
-| **~~chat** | Search messages, read channels and threads |
-| **~~email** | Search messages, read individual emails |
-| **~~cloud storage** | Search files, fetch document contents |
-| **~~project tracker** | Search tasks, typeahead search |
-| **~~CRM** | Query records (accounts, contacts, opportunities) |
-| **~~knowledge base** | Semantic search, keyword search |
+| Source | Tool name patterns | Key capabilities |
+|--------|--------------------|-----------------|
+| **~~chat** | `slack_*` (Slack), `teams_*` (Teams) | Search messages, read channels and threads |
+| **~~email** | `gmail_*`, `ms365_*` mail tools | Search messages, read individual emails |
+| **~~cloud storage** | `google_drive_*`, `ms365_*` file tools | Search files, fetch document contents |
+| **~~project tracker** | `jira_*`, `asana_*`, `linear_*` | Search tasks, typeahead search |
+| **~~CRM** | `salesforce_*`, `hubspot_*` | Query records (accounts, contacts, opportunities) |
+| **~~knowledge base** | `API-*` (Notion), `confluence_*`, `guru_*` | Semantic search, keyword search |
 
-If a tool prefix is available, the source is connected and searchable.
+**How to detect**: Look at your available tools. If you have tools matching a pattern above (e.g., `slack_get_channel_history`), that source category is connected. Use those tools directly — do not look for `~~` prefixed tools.
 
 ## Guiding Users to Connect Sources
 
@@ -148,16 +148,16 @@ Note: [Source] is temporarily rate limited. Results below are from
 
 ## Source Health
 
-Track source availability during a session:
+Track source availability during a session by checking which tool patterns exist in your tool list:
 
 ```
 Source Status:
-  ~~chat:        ✓ Available
-  ~~email:        ✓ Available
-  ~~cloud storage:  ✓ Available
-  ~~project tracker:        ✗ Not connected
-  ~~CRM:   ✗ Not connected
-  ~~knowledge base:      ⚠ Rate limited (retry in 2 min)
+  ~~chat (slack_*):           ✓ Available
+  ~~email (gmail_*):          ✗ Not connected
+  ~~cloud storage:            ✗ Not connected
+  ~~project tracker (jira_*): ✗ Not connected
+  ~~CRM:                      ✗ Not connected
+  ~~knowledge base (API-*):   ✓ Available
 ```
 
 When reporting search results, include which sources were searched so the user knows the scope of the answer.

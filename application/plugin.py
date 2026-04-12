@@ -4,6 +4,7 @@ import yaml
 import logging
 import sys
 import skill
+import langgraph_agent
 
 from langchain_core.tools import tool
 from dataclasses import dataclass, field
@@ -253,4 +254,4 @@ def load_plugin_mcp_servers_from_list(plugin_path: str) -> list:
 
 def get_builtin_tools():
     """Return the list of built-in tools for the skill-aware agent."""
-    return [skill.execute_code, skill.write_file, skill.read_file, skill.upload_file_to_s3, skill.get_skill_instructions]
+    return [langgraph_agent.execute_code, langgraph_agent.write_file, langgraph_agent.read_file, langgraph_agent.upload_file_to_s3, skill.get_skill_instructions]

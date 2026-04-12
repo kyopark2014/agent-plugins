@@ -196,17 +196,9 @@ SKILL_USAGE_GUIDE = (
     "3. skill 지침이 없는 일반 질문은 직접 답변하세요.\n"
 )
 
-def build_skill_prompt(plugin_name: str) -> str:
+def build_skill_prompt(skill_info: list) -> str:
     """Build skill-related prompt: path info, available skills XML, and usage guide."""
-    skill_info = selected_skill_info(plugin_name)
-    logger.info(f"plugin_name: {plugin_name}, skill_info: {skill_info}")
-
-    if plugin_name != "base":
-        default_skill_info = selected_skill_info("base")
-        if default_skill_info:
-            skill_info.extend(default_skill_info)
-            logger.info(f"default_skill_info: {default_skill_info}")
-
+        
     path_info = (
         f"## Paths (use absolute paths for write_file, read_file)\n"
         f"- WORKING_DIR: {WORKING_DIR}\n"
@@ -258,16 +250,8 @@ COMMAND_USAGE_GUIDE = (
 )
 
 
-def build_command_prompt(plugin_name: str, command: str) -> str:
+def build_command_prompt(plugin_name: str, skill_info: str, command: str) -> str:
     """Build prompt for command mode: path info, command instructions, and available skills."""
-    skill_info = selected_skill_info(plugin_name)
-    logger.info(f"plugin_name: {plugin_name}, command: {command}, skill_info: {skill_info}")
-
-    if plugin_name != "base":
-        default_skill_info = selected_skill_info("base")
-        if default_skill_info:
-            skill_info.extend(default_skill_info)
-            logger.info(f"default_skill_info: {default_skill_info}")
 
     path_info = (
         f"## Paths (use absolute paths for write_file, read_file)\n"
@@ -290,7 +274,7 @@ def build_command_prompt(plugin_name: str, command: str) -> str:
 # ═══════════════════════════════════════════════════════════════════
 
 @tool
-def get_skill_instructions(plugin_name: str, skill_name: str) -> str:
+def get_skill_instructions(skill_name: str) -> str:
     """Load the full instructions for a specific skill by name.
 
     Use this when you need detailed instructions for a task that matches
@@ -303,30 +287,17 @@ def get_skill_instructions(plugin_name: str, skill_name: str) -> str:
         The full skill instructions, or an error message if not found.
     """    
     logger.info(f"###### get_skill_instructions: {skill_name} ######")
-    skill_manager = skill_managers.get(plugin_name)
-    if skill_manager is None:
-        if plugin_name == "base": # base skills
-            skills_dir = SKILLS_DIR
-        else:   # plugin skills
-            skills_dir = os.path.join(WORKING_DIR, "plugins", plugin_name, "skills")
-        skill_manager = SkillManager(skills_dir)
-        skill_managers[plugin_name] = skill_manager
 
-    instructions = skill_manager.get_skill_instructions(skill_name)
-    if instructions:
-        return instructions
+    for mgr_name, mgr in skill_managers.items():
+        instructions = mgr.get_skill_instructions(skill_name)
+        if instructions:
+            logger.info(f"Skill '{skill_name}' found in '{mgr_name}' manager")
+            return instructions
 
-    # fallback to base skills
-    skill_manager = skill_managers.get("base")
-    if skill_manager is None:
-        skills_dir = SKILLS_DIR
-        skill_manager = SkillManager(skills_dir)
-        skill_managers["base"] = skill_manager
-    instructions = skill_manager.get_skill_instructions(skill_name)
-    if instructions:
-        return instructions
-
-    available = ", ".join(skill_manager.registry.keys())
+    all_skills = set()
+    for mgr in skill_managers.values():
+        all_skills.update(mgr.registry.keys())
+    available = ", ".join(sorted(all_skills))
     return f"Skill '{skill_name}' not found. Available skills: {available}"
 
 

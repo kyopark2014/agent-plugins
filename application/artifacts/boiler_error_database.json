@@ -1,0 +1,527 @@
+{
+  "boiler_error_codes": [
+    {
+      "code": "E01",
+      "name": "점화 실패",
+      "english_name": "Ignition Failure",
+      "severity": "high",
+      "description": "보일러가 점화되지 않음",
+      "causes": [
+        "가스 공급 차단",
+        "점화 플러그 고장",
+        "가스 밸브 오작동",
+        "점화 전극 오염",
+        "점화 변압기 고장"
+      ],
+      "symptoms": [
+        "보일러가 켜지지 않음",
+        "점화음이 들리지 않음",
+        "화염이 나타나지 않음",
+        "반복적인 재시작"
+      ],
+      "solutions": [
+        {
+          "step": 1,
+          "action": "가스 공급 확인",
+          "details": "가스 밸브가 열려있는지 확인하고, 가스 공급 라인에 문제가 없는지 확인"
+        },
+        {
+          "step": 2,
+          "action": "점화 플러그 청소",
+          "details": "점화 플러그를 제거하여 오염물을 청소하고 재설치"
+        },
+        {
+          "step": 3,
+          "action": "가스 밸브 점검",
+          "details": "가스 밸브의 연결 상태를 확인하고 오작동 여부 확인"
+        },
+        {
+          "step": 4,
+          "action": "전문가 호출",
+          "details": "위의 조치로 해결되지 않으면 전문가 호출"
+        }
+      ],
+      "prevention": [
+        "정기적인 점화 플러그 청소 (월 1회)",
+        "연간 점검 실시",
+        "가스 공급 라인 정기 점검"
+      ],
+      "estimated_repair_cost": "50,000 - 200,000원",
+      "repair_time": "1-2시간"
+    },
+    {
+      "code": "E02",
+      "name": "과열",
+      "english_name": "Overheating",
+      "severity": "high",
+      "description": "보일러 온도가 설정값을 초과함",
+      "causes": [
+        "온도 센서 고장",
+        "순환 펌프 오작동",
+        "배관 막힘",
+        "보일러 내부 스케일 축적",
+        "온도 조절 밸브 고장"
+      ],
+      "symptoms": [
+        "과도한 열 발생",
+        "온도 표시 이상",
+        "안전 밸브에서 물이 흘러나옴",
+        "보일러에서 이상음 발생"
+      ],
+      "solutions": [
+        {
+          "step": 1,
+          "action": "온도 설정 확인",
+          "details": "온도 설정을 60-70°C 범위로 조정"
+        },
+        {
+          "step": 2,
+          "action": "순환 펌프 점검",
+          "details": "순환 펌프가 정상 작동하는지 확인"
+        },
+        {
+          "step": 3,
+          "action": "배관 청소",
+          "details": "배관의 막힘 여부를 확인하고 청소"
+        },
+        {
+          "step": 4,
+          "action": "스케일 제거",
+          "details": "전문가에 의한 보일러 내부 스케일 제거"
+        }
+      ],
+      "prevention": [
+        "온도 설정을 적절한 수준으로 유지",
+        "정기적인 배관 청소",
+        "수질 관리 (연수기 사용)"
+      ],
+      "estimated_repair_cost": "100,000 - 300,000원",
+      "repair_time": "2-3시간"
+    },
+    {
+      "code": "E03",
+      "name": "저압",
+      "english_name": "Low Pressure",
+      "severity": "medium",
+      "description": "보일러 시스템 압력이 너무 낮음",
+      "causes": [
+        "물 누수",
+        "팽창 탱크 고장",
+        "압력 릴리프 밸브 오작동",
+        "물 공급 부족",
+        "배관 연결 불량"
+      ],
+      "symptoms": [
+        "난방이 약함",
+        "온수 공급 부족",
+        "압력 게이지 표시 낮음",
+        "보일러 자동 종료"
+      ],
+      "solutions": [
+        {
+          "step": 1,
+          "action": "누수 지점 확인",
+          "details": "보일러 주변과 배관에서 물이 흘러나오는 곳 확인"
+        },
+        {
+          "step": 2,
+          "action": "물 공급 확인",
+          "details": "물 공급 밸브가 열려있는지 확인"
+        },
+        {
+          "step": 3,
+          "action": "팽창 탱크 점검",
+          "details": "팽창 탱크의 압력과 상태 확인"
+        },
+        {
+          "step": 4,
+          "action": "물 보충",
+          "details": "보일러에 물을 보충하여 압력을 1.0-1.5 bar로 조정"
+        }
+      ],
+      "prevention": [
+        "정기적인 누수 점검",
+        "팽창 탱크 상태 모니터링",
+        "배관 연결 상태 확인"
+      ],
+      "estimated_repair_cost": "30,000 - 150,000원",
+      "repair_time": "1-2시간"
+    },
+    {
+      "code": "E04",
+      "name": "고압",
+      "english_name": "High Pressure",
+      "severity": "medium",
+      "description": "보일러 시스템 압력이 너무 높음",
+      "causes": [
+        "팽창 탱크 고장",
+        "압력 릴리프 밸브 고장",
+        "물 공급 과다",
+        "순환 펌프 오작동",
+        "온도 조절 밸브 고장"
+      ],
+      "symptoms": [
+        "압력 게이지 표시 높음",
+        "안전 밸브에서 물이 흘러나옴",
+        "보일러에서 이상음 발생",
+        "배관에서 물이 흘러나옴"
+      ],
+      "solutions": [
+        {
+          "step": 1,
+          "action": "팽창 탱크 점검",
+          "details": "팽창 탱크의 압력과 상태 확인"
+        },
+        {
+          "step": 2,
+          "action": "압력 릴리프 밸브 점검",
+          "details": "압력 릴리프 밸브가 정상 작동하는지 확인"
+        },
+        {
+          "step": 3,
+          "action": "물 공급량 조절",
+          "details": "물 공급 밸브를 조절하여 압력 감소"
+        },
+        {
+          "step": 4,
+          "action": "순환 펌프 점검",
+          "details": "순환 펌프의 작동 상태 확인"
+        }
+      ],
+      "prevention": [
+        "정기적인 압력 모니터링",
+        "팽창 탱크 유지보수",
+        "압력 릴리프 밸브 점검"
+      ],
+      "estimated_repair_cost": "50,000 - 200,000원",
+      "repair_time": "1-2시간"
+    },
+    {
+      "code": "E05",
+      "name": "센서 오류",
+      "english_name": "Sensor Error",
+      "severity": "medium",
+      "description": "온도 또는 압력 센서 오작동",
+      "causes": [
+        "온도 센서 고장",
+        "압력 센서 고장",
+        "센서 연결 불량",
+        "센서 오염",
+        "제어 기판 고장"
+      ],
+      "symptoms": [
+        "온도 표시 이상",
+        "압력 표시 이상",
+        "보일러 자동 종료",
+        "에러 코드 표시"
+      ],
+      "solutions": [
+        {
+          "step": 1,
+          "action": "센서 연결 확인",
+          "details": "센서의 연결 상태와 커넥터 확인"
+        },
+        {
+          "step": 2,
+          "action": "센서 청소",
+          "details": "센서 주변의 오염물 제거"
+        },
+        {
+          "step": 3,
+          "action": "센서 교체",
+          "details": "센서가 고장난 경우 새로운 센서로 교체"
+        },
+        {
+          "step": 4,
+          "action": "제어 기판 점검",
+          "details": "제어 기판의 손상 여부 확인"
+        }
+      ],
+      "prevention": [
+        "정기적인 센서 점검",
+        "센서 주변 청소",
+        "습도 관리"
+      ],
+      "estimated_repair_cost": "80,000 - 250,000원",
+      "repair_time": "1-2시간"
+    },
+    {
+      "code": "E06",
+      "name": "가스 밸브 오류",
+      "english_name": "Gas Valve Error",
+      "severity": "high",
+      "description": "가스 밸브 오작동 또는 고장",
+      "causes": [
+        "가스 밸브 고장",
+        "가스 밸브 연결 불량",
+        "가스 공급 차단",
+        "가스 밸브 오염",
+        "제어 신호 오류"
+      ],
+      "symptoms": [
+        "가스 공급 안 됨",
+        "점화 실패",
+        "비정상적인 화염",
+        "가스 냄새"
+      ],
+      "solutions": [
+        {
+          "step": 1,
+          "action": "가스 공급 확인",
+          "details": "가스 공급 밸브가 열려있는지 확인"
+        },
+        {
+          "step": 2,
+          "action": "가스 밸브 연결 점검",
+          "details": "가스 밸브의 연결 상태 확인"
+        },
+        {
+          "step": 3,
+          "action": "가스 밸브 청소",
+          "details": "가스 밸브의 오염물 제거"
+        },
+        {
+          "step": 4,
+          "action": "가스 밸브 교체",
+          "details": "가스 밸브가 고장난 경우 교체"
+        }
+      ],
+      "prevention": [
+        "정기적인 가스 밸브 점검",
+        "가스 공급 라인 유지보수",
+        "가스 냄새 감지 시 즉시 조치"
+      ],
+      "estimated_repair_cost": "120,000 - 350,000원",
+      "repair_time": "1-3시간"
+    },
+    {
+      "code": "E07",
+      "name": "순환 펌프 오류",
+      "english_name": "Circulation Pump Error",
+      "severity": "medium",
+      "description": "순환 펌프 오작동 또는 고장",
+      "causes": [
+        "순환 펌프 고장",
+        "펌프 연결 불량",
+        "펌프 내부 막힘",
+        "펌프 베어링 고장",
+        "제어 신호 오류"
+      ],
+      "symptoms": [
+        "난방이 약함",
+        "온수 공급 부족",
+        "펌프에서 이상음 발생",
+        "보일러 자동 종료"
+      ],
+      "solutions": [
+        {
+          "step": 1,
+          "action": "펌프 연결 확인",
+          "details": "펌프의 연결 상태와 전원 확인"
+        },
+        {
+          "step": 2,
+          "action": "펌프 내부 청소",
+          "details": "펌프 내부의 막힘 제거"
+        },
+        {
+          "step": 3,
+          "action": "펌프 베어링 점검",
+          "details": "펌프 베어링의 상태 확인"
+        },
+        {
+          "step": 4,
+          "action": "펌프 교체",
+          "details": "펌프가 고장난 경우 교체"
+        }
+      ],
+      "prevention": [
+        "정기적인 펌프 점검",
+        "배관 청소",
+        "수질 관리"
+      ],
+      "estimated_repair_cost": "150,000 - 400,000원",
+      "repair_time": "2-3시간"
+    },
+    {
+      "code": "E08",
+      "name": "배기 온도 센서 오류",
+      "english_name": "Flue Temperature Sensor Error",
+      "severity": "medium",
+      "description": "배기 온도 센서 오작동",
+      "causes": [
+        "배기 온도 센서 고장",
+        "센서 오염",
+        "센서 연결 불량",
+        "배기 라인 막힘",
+        "제어 기판 고장"
+      ],
+      "symptoms": [
+        "배기 온도 표시 이상",
+        "보일러 자동 종료",
+        "에러 코드 표시",
+        "난방 효율 저하"
+      ],
+      "solutions": [
+        {
+          "step": 1,
+          "action": "배기 라인 확인",
+          "details": "배기 라인의 막힘 여부 확인"
+        },
+        {
+          "step": 2,
+          "action": "센서 청소",
+          "details": "배기 온도 센서의 오염물 제거"
+        },
+        {
+          "step": 3,
+          "action": "센서 연결 점검",
+          "details": "센서의 연결 상태 확인"
+        },
+        {
+          "step": 4,
+          "action": "센서 교체",
+          "details": "센서가 고장난 경우 교체"
+        }
+      ],
+      "prevention": [
+        "정기적인 배기 라인 청소",
+        "센서 점검",
+        "배기 라인 유지보수"
+      ],
+      "estimated_repair_cost": "100,000 - 280,000원",
+      "repair_time": "1-2시간"
+    },
+    {
+      "code": "E09",
+      "name": "점화 전극 오류",
+      "english_name": "Ignition Electrode Error",
+      "severity": "medium",
+      "description": "점화 전극 오작동 또는 고장",
+      "causes": [
+        "점화 전극 고장",
+        "점화 전극 오염",
+        "점화 전극 연결 불량",
+        "점화 변압기 고장",
+        "제어 신호 오류"
+      ],
+      "symptoms": [
+        "점화 실패",
+        "반복적인 재시작",
+        "점화음이 들리지 않음",
+        "화염이 나타나지 않음"
+      ],
+      "solutions": [
+        {
+          "step": 1,
+          "action": "점화 전극 청소",
+          "details": "점화 전극의 오염물 제거"
+        },
+        {
+          "step": 2,
+          "action": "점화 전극 연결 점검",
+          "details": "점화 전극의 연결 상태 확인"
+        },
+        {
+          "step": 3,
+          "action": "점화 변압기 점검",
+          "details": "점화 변압기의 작동 상태 확인"
+        },
+        {
+          "step": 4,
+          "action": "점화 전극 교체",
+          "details": "점화 전극이 고장난 경우 교체"
+        }
+      ],
+      "prevention": [
+        "정기적인 점화 전극 청소",
+        "점화 시스템 점검",
+        "습도 관리"
+      ],
+      "estimated_repair_cost": "60,000 - 180,000원",
+      "repair_time": "1-2시간"
+    },
+    {
+      "code": "E10",
+      "name": "팬 오류",
+      "english_name": "Fan Error",
+      "severity": "medium",
+      "description": "배기 팬 오작동 또는 고장",
+      "causes": [
+        "팬 고장",
+        "팬 연결 불량",
+        "팬 내부 막힘",
+        "팬 모터 고장",
+        "제어 신호 오류"
+      ],
+      "symptoms": [
+        "배기가 약함",
+        "팬에서 이상음 발생",
+        "보일러 자동 종료",
+        "에러 코드 표시"
+      ],
+      "solutions": [
+        {
+          "step": 1,
+          "action": "팬 연결 확인",
+          "details": "팬의 연결 상태와 전원 확인"
+        },
+        {
+          "step": 2,
+          "action": "팬 청소",
+          "details": "팬의 오염물 제거"
+        },
+        {
+          "step": 3,
+          "action": "팬 모터 점검",
+          "details": "팬 모터의 작동 상태 확인"
+        },
+        {
+          "step": 4,
+          "action": "팬 교체",
+          "details": "팬이 고장난 경우 교체"
+        }
+      ],
+      "prevention": [
+        "정기적인 팬 청소",
+        "팬 시스템 점검",
+        "배기 라인 유지보수"
+      ],
+      "estimated_repair_cost": "100,000 - 300,000원",
+      "repair_time": "1-2시간"
+    }
+  ],
+  "maintenance_schedule": {
+    "monthly": [
+      "보일러 작동 상태 확인",
+      "이상음 확인",
+      "누수 확인",
+      "압력 게이지 확인"
+    ],
+    "quarterly": [
+      "필터 청소",
+      "센서 점검",
+      "배관 확인",
+      "팬 청소"
+    ],
+    "annual": [
+      "전문가 정기 점검",
+      "전체 시스템 점검",
+      "부품 교체 (필요시)",
+      "효율성 테스트"
+    ]
+  },
+  "safety_warnings": [
+    "가스 냄새가 나는 경우 즉시 119 또는 가스 회사에 신고",
+    "비정상적인 소음이 나는 경우 즉시 전원 차단",
+    "심각한 누수가 있는 경우 즉시 물 공급 차단",
+    "반복적인 에러 발생 시 전문가 호출",
+    "화염이 비정상적인 경우 즉시 점검"
+  ],
+  "emergency_contacts": {
+    "emergency": "119",
+    "gas_company": "지역 가스 회사 긴급 번호",
+    "service_center": "보일러 제조사 서비스 센터",
+    "repair_shop": "공인 수리점"
+  }
+}

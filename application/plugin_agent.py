@@ -28,8 +28,85 @@ WORKING_DIR = os.path.dirname(os.path.abspath(__file__))
 ARTIFACTS_DIR = os.path.join(WORKING_DIR, "artifacts")
 PLUGINS_DIR = os.path.join(WORKING_DIR, "plugins")
 
-async def run_plugin_agent(query, mcp_servers, plugin_name, containers):
+from typing import Literal, Optional
+
+async def create_agent(mcp_servers: list, plugin_name: Optional[str]=None, command: Optional[str]=None, history_mode: str="Disable") -> tuple[str, list]:
+    # builtin tools
+    tools = langgraph_agent.get_builtin_tools()
+    logger.info(f"builtin_tools count: {len(tools)}")
+        
+    # mcp
+    mcp_json = mcp_config.load_selected_config(mcp_servers)
+    # logger.info(f"mcp_json: {mcp_json}")
+
+    server_params = langgraph_agent.load_multiple_mcp_server_parameters(mcp_json)
+    # logger.info(f"server_params: {server_params}")    
+
+    try:
+        client = MultiServerMCPClient(server_params)
+        logger.info(f"MCP client is initialized successfully")
+        
+        mcp_tools = await client.get_tools()        # add MCP tools
+        # logger.info(f"mcp_tools: {mcp_tools}")        
+        for tool in mcp_tools:
+            logger.info(f"mcp_tool: {tool.name}")
+            if tool.name not in tools:
+                tools.append(tool)
+            else:
+                logger.info(f"mcp_tool of {tool.name} already in tools")
+        
+    except Exception as e:
+        logger.error(f"Error creating MCP client or getting tools: {e}")
+        logger.info(f"Falling back to builtin tools only (count: {len(tools)})")
+
+    if chat.skill_mode == "Enable":       
+        tools.extend(skill.get_skill_tools())
+
+        skill_info = skill.selected_skill_info("base")
+        plugin_skill_info = skill.selected_skill_info(plugin_name)
+        logger.info(f"skill_info: {skill_info}, plugin_skill_info: {plugin_skill_info}")        
+        skill_info.extend(plugin_skill_info)
+
+        if command:
+            system_prompt = skill.build_command_prompt(plugin_name, skill_info, command)
+        else:
+            system_prompt = skill.build_skill_prompt(skill_info)        
+        logger.info(f"system prompt: {system_prompt}")
+
+    else:
+        system_prompt = langgraph_agent.BASE_SYSTEM_PROMPT
+
+    tool_list = [tool.name for tool in tools] if tools else []
+    logger.info(f"tool_list: {tool_list}")
+    
+    if history_mode == "Enable":
+        app = langgraph_agent.buildChatAgentWithHistory(tools)
+        config = {
+            "recursion_limit": 100,
+            "configurable": {"thread_id": chat.user_id},
+            "tools": tools,
+            "system_prompt": system_prompt
+        }
+    else:
+        app = langgraph_agent.buildChatAgent(tools)
+        config = {
+            "recursion_limit": 100,
+            "configurable": {"thread_id": chat.user_id},
+            "tools": tools,
+            "system_prompt": system_prompt
+        }        
+    
+    return app, config
+
+app = config = None
+active_mcp_servers = []
+active_plugin_name = None
+last_command = None
+
+async def run_plugin_agent(query, mcp_servers, plugin_name, history_mode, containers):
     """Run plugin agent with MCP tools and skills."""
+    global app, config, active_mcp_servers, active_skills, last_command
+
     chat.index = 0
     chat.streaming_index = 0
 
@@ -41,71 +118,19 @@ async def run_plugin_agent(query, mcp_servers, plugin_name, containers):
         command = query.split(" ")[0].lstrip("/")
         logger.info(f"command: {command}")
 
-    # mcp
-    mcp_json = mcp_config.load_selected_config(mcp_servers)
-    logger.info(f"plugin {plugin_name} mcp_json: {mcp_json}")
+    selected_skill_info = skill.selected_skill_info("base")
 
-    if not mcp_json.get("mcpServers"):
-        logger.warning(f"No MCP servers in plugin {plugin_name}, using empty tools")
-        tools = []
-    else:
-        server_params = langgraph_agent.load_multiple_mcp_server_parameters(mcp_json)
-        logger.info(f"server_params: {server_params}")
+    if app is None or mcp_servers != active_mcp_servers or active_skills != selected_skill_info or last_command != command:
+        active_mcp_servers = mcp_servers
+        active_skills = selected_skill_info
+        last_command = command
 
-        try:
-            client = MultiServerMCPClient(server_params)
-            logger.info("MCP client created successfully")
-
-            tools = await client.get_tools()
-            # logger.info(f"get_tools() returned: {tools}")
-
-            if tools is None:
-                logger.error("tools is None - MCP client failed to get tools")
-                tools = []
-
-        except Exception as e:
-            logger.error(f"Error creating MCP client or getting tools: {e}")
-            tools = []
-
-    # Use plugin-specific get_skill_instructions so plugin skills (e.g. frontend-design)
-    # are found from plugins/<name>/skills/, not the global application/skills/
-    builtin_tools = plugin.get_builtin_tools()
-    # skill_instruction = plugin.create_plugin_and_get_skill_instructions(plugin_name)
-
-    if chat.skill_mode == "Enable":        
-        tool_names = {tool.name for tool in tools}
-        for bt in builtin_tools:
-            if bt.name not in tool_names:
-                tools.append(bt)
-            else:
-                logger.info(f"builtin_tool {bt.name} already in tools")
-        
-    if tools is None:
-        logger.error("tools is None - MCP client failed to get tools")
-        tools = []
-
-    tool_list = [tool.name for tool in tools] if tools else []
-    logger.info(f"tool_list: {tool_list}")
-
-    if not tools:
-        logger.warning("No tools available for plugin")
-        result = "Check your MCP configuration. Ensure the plugin's mcp_servers.list has connected MCP servers."
-        if containers is not None:
-            containers['notification'][0].markdown(result)
-        return result
-
-    app = langgraph_agent.buildChatAgentWithHistory(tools)
-    config = {
-        "recursion_limit": 100,
-        "configurable": {
-            "thread_id": f"plugin-{plugin_name}",
-            "tools": tools,
-            "system_prompt": None,            
-            "plugin_name": plugin_name,
-            "command": command
-        }
-    }
-
+        app, config = await create_agent(mcp_servers, plugin_name, command, history_mode)
+    
+    if app is None:
+        logger.error("Failed to create agent - app is None")
+        return "에이전트를 생성할 수 없습니다. MCP 서버 설정 또는 도구 구성을 확인해주세요.", []
+    
     inputs = {
         "messages": [HumanMessage(content=query)]
     }
