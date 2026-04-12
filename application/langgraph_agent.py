@@ -34,7 +34,6 @@ config = utils.load_config()
 sharing_url = config.get("sharing_url")
 s3_prefix = "docs"
 capture_prefix = "captures"
-user_id = "langgraph"
 
 s3_bucket = config.get("s3_bucket")
         
@@ -814,7 +813,7 @@ async def create_agent(mcp_servers: list, history_mode: str="Disable") -> tuple[
         app = buildChatAgentWithHistory(tools)
         config = {
             "recursion_limit": 100,
-            "configurable": {"thread_id": user_id},
+            "configurable": {"thread_id": chat.user_id},
             "tools": tools,
             "system_prompt": system_prompt
         }
@@ -822,7 +821,7 @@ async def create_agent(mcp_servers: list, history_mode: str="Disable") -> tuple[
         app = buildChatAgent(tools)
         config = {
             "recursion_limit": 100,
-            "configurable": {"thread_id": user_id},
+            "configurable": {"thread_id": chat.user_id},
             "tools": tools,
             "system_prompt": system_prompt
         }        
@@ -832,9 +831,10 @@ async def create_agent(mcp_servers: list, history_mode: str="Disable") -> tuple[
 app = config = None
 active_mcp_servers = []
 active_skills = []
+current_id = None
 
 async def run_langgraph_agent(query: str, mcp_servers: list, history_mode: str="Disable", containers: Optional[dict]=None) -> tuple[str, list]:
-    global app, config, active_mcp_servers, active_skills
+    global app, config, active_mcp_servers, active_skills, current_id
     
     chat.index = 0
     chat.streaming_index = 0
@@ -844,9 +844,10 @@ async def run_langgraph_agent(query: str, mcp_servers: list, history_mode: str="
 
     selected_skill_info = skill.selected_skill_info("base")
 
-    if app is None or mcp_servers != active_mcp_servers or active_skills != selected_skill_info:
+    if app is None or mcp_servers != active_mcp_servers or active_skills != selected_skill_info or current_id != chat.user_id:
         active_mcp_servers = mcp_servers
         active_skills = selected_skill_info
+        current_id = chat.user_id
 
         app, config = await create_agent(mcp_servers, history_mode)
     
