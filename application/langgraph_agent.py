@@ -776,47 +776,42 @@ def load_multiple_mcp_server_parameters(mcp_json: dict):
                 }
     return server_info
 
-async def run_langgraph_agent(query: str, mcp_servers: list, plugin_name: Optional[str]=None, history_mode: str="Disable", containers: Optional[dict]=None) -> tuple[str, list]:
-    chat.index = 0
-    chat.streaming_index = 0
-
-    image_url = []
-    references = []
-    tools = []
-
+async def create_agent(mcp_servers: list, plugin_name: Optional[str]=None, history_mode: str="Disable", containers: Optional[dict]=None) -> tuple[str, list]:
+    # builtin tools
+    tools = get_builtin_tools()
+    logger.info(f"builtin_tools count: {len(tools)}")
+        
     # mcp
     mcp_json = mcp_config.load_selected_config(mcp_servers)
-    logger.info(f"mcp_json: {mcp_json}")
+    # logger.info(f"mcp_json: {mcp_json}")
 
     server_params = load_multiple_mcp_server_parameters(mcp_json)
-    logger.info(f"server_params: {server_params}")    
+    # logger.info(f"server_params: {server_params}")    
 
     try:
         client = MultiServerMCPClient(server_params)
-        logger.info(f"MCP client created successfully")
+        logger.info(f"MCP client is initialized successfully")
         
-        tools.extend(await client.get_tools())        
-
-        # skill
-        builtin_tools = get_builtin_tools()
-        # logger.info(f"builtin_tools: {builtin_tools}")
-        skill_tools = skill.get_skill_tools()
-
+        mcp_tools = await client.get_tools()        # add MCP tools
+        # logger.info(f"mcp_tools: {mcp_tools}")        
+        for tool in mcp_tools:
+            logger.info(f"mcp_tool: {tool.name}")
+            if tool.name not in tools:
+                tools.append(tool)
+            else:
+                logger.info(f"mcp_tool of {tool.name} already in tools")
+        
         if chat.skill_mode == "Enable":        
-            tool_names = {tool.name for tool in tools}
-            for bt in builtin_tools:
-                if bt.name not in tool_names:
-                    tools.append(bt)
-                else:
-                    logger.info(f"builtin_tool {bt.name} already in tools")
+            skill_tools = skill.get_skill_tools()
+            logger.info(f"skill_tools count: {len(skill_tools)}")
 
             tool_names = {tool.name for tool in tools}
             for st in skill_tools:
                 if st.name not in tool_names:
                     tools.append(st)
                 else:
-                    logger.info(f"skill_tool {st.name} already in tools")
-            
+                    logger.info(f"skill_tool of {st.name} already in tools")
+
         if tools is None:
             logger.error("tools is None - MCP client failed to get tools")
             tools = []
@@ -835,7 +830,7 @@ async def run_langgraph_agent(query: str, mcp_servers: list, plugin_name: Option
         result = "MCP 설정을 확인하세요."
         if containers is not None:
             containers['notification'][0].markdown(result)
-        return result, image_url
+        return None, None
     
     if history_mode == "Enable":
         app = buildChatAgentWithHistory(tools)
@@ -856,6 +851,26 @@ async def run_langgraph_agent(query: str, mcp_servers: list, plugin_name: Option
             "system_prompt": None
         }        
     
+    return app, config
+
+app = config = None
+active_mcp_servers = []
+active_plugin_name = None
+
+async def run_langgraph_agent(query: str, mcp_servers: list, plugin_name: Optional[str]=None, history_mode: str="Disable", containers: Optional[dict]=None) -> tuple[str, list]:
+    global app, config, active_mcp_servers, active_plugin_name
+    
+    chat.index = 0
+    chat.streaming_index = 0
+
+    image_url = []
+    references = []
+
+    if mcp_servers != active_mcp_servers or plugin_name != active_plugin_name:
+        active_mcp_servers = mcp_servers
+        active_plugin_name = plugin_name
+        app, config = await create_agent(mcp_servers, plugin_name, history_mode, containers)
+
     inputs = {
         "messages": [HumanMessage(content=query)]
     }
