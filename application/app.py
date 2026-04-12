@@ -99,6 +99,7 @@ with st.sidebar:
         "korea_weather",
         "obsidian",
         "image_generation",
+        "browser-use",
         "AWS Sentral (Employee)",
         "AWS Outlook (Employee)",
         "사용자 설정"

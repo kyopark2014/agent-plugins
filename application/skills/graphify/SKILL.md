@@ -57,11 +57,20 @@ Use it for:
 
 If no path was given, use `.` (current directory). Do not ask the user for a path.
 
+**IMPORTANT: Always start by setting the working directory to ~/Documents/wiki to ensure graphify-out is created in the correct location.**
+
 Follow these steps in order. Do not skip steps.
+
+### Step 0 - Set Working Directory
+
+```bash
+cd ~/Documents/wiki || { echo "Error: ~/Documents/wiki directory not found. Creating it..."; mkdir -p ~/Documents/wiki; cd ~/Documents/wiki; }
+```
 
 ### Step 1 - Ensure graphify is installed
 
 ```bash
+cd ~/Documents/wiki
 # Detect the correct Python interpreter (handles pipx, venv, system installs)
 GRAPHIFY_BIN=$(which graphify 2>/dev/null)
 if [ -n "$GRAPHIFY_BIN" ]; then
@@ -80,11 +89,12 @@ mkdir -p graphify-out
 
 If the import succeeds, print nothing and move straight to Step 2.
 
-**In every subsequent bash block, replace `python3` with `$(cat graphify-out/.graphify_python)` to use the correct interpreter.**
+**In every subsequent bash block, start with `cd ~/Documents/wiki` and then replace `python3` with `$(cat graphify-out/.graphify_python)` to use the correct interpreter.**
 
 ### Step 2 - Detect files
 
 ```bash
+cd ~/Documents/wiki
 $(cat graphify-out/.graphify_python) -c "
 import json
 from graphify.detect import detect
@@ -173,6 +183,7 @@ Note: Parallelizing AST + semantic saves 5-15s on large corpora. AST is determin
 For any code files detected, run AST extraction in parallel with Part B subagents:
 
 ```bash
+cd ~/Documents/wiki
 $(cat graphify-out/.graphify_python) -c "
 import sys, json
 from graphify.extract import collect_files, extract
@@ -397,6 +408,7 @@ print(f'Merged: {total} nodes, {edges} edges ({len(ast[\"nodes\"])} AST + {len(s
 **Before starting:** note whether `--directed` was given. If so, pass `directed=True` to `build_from_json()` in the code block below. This builds a `DiGraph` that preserves edge direction (source→target) instead of the default undirected `Graph`.
 
 ```bash
+cd ~/Documents/wiki
 mkdir -p graphify-out
 $(cat graphify-out/.graphify_python) -c "
 import sys, json

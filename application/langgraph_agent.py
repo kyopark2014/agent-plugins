@@ -485,9 +485,11 @@ def memory_get(path: str, from_line: int = 0, lines: int = 0) -> str:
 def bash(command: str) -> str:
     """Execute a bash command and return the result"""
     logger.info(f"###### bash: {command} ######")
+    _ensure_cli_scripts_on_path()
     result = subprocess.run(
         command, shell=True, capture_output=True, text=True,
         cwd=WORKING_DIR, timeout=300,
+        env=os.environ,
     )
     parts = []
     if result.stdout:
