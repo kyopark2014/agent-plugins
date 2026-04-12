@@ -110,7 +110,7 @@ with st.sidebar:
         st.subheader("⚙️ Skill Config")
 
         skill_selections = {}
-        default_skill_selections = config.get("default_skills") or ["pdf", "notion", "memory-manager", "korea_weather"]
+        default_skill_selections = config.get("default_skills") or ["skill-creator"]
         logger.info(f"default_skill_selections: {default_skill_selections}")
         with st.expander("Skill 옵션 선택", expanded=True):
             available_skill_info = skill.available_skill_info("base")
