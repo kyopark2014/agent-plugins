@@ -1,4 +1,5 @@
 import streamlit as st 
+import streamlit_paste_button as spb
 import chat
 import json
 import mcp_config 
@@ -6,6 +7,7 @@ import logging
 import sys
 import os
 import asyncio
+import io
 import langgraph_agent
 import skill
 import plugin
@@ -326,12 +328,35 @@ with st.sidebar:
     # logger.info(f"gradingMode: {gradingMode}")
 
     uploaded_file = None
+    pasted_image = None
+
+    def safe_paste_button(label, key):
+        """streamlit-paste-button 래퍼: 내부 이미지 디코딩 실패 시 안전하게 처리"""
+        try:
+            result = spb.paste_image_button(label, key=key, errors="ignore")
+            if result.image_data is not None:
+                return result.image_data
+        except Exception as e:
+            logger.warning(f"clipboard paste error: {e}")
+        return None
+
     if mode=='이미지 분석':
         st.subheader("🌇 이미지 업로드")
         uploaded_file = st.file_uploader("이미지 분석을 위한 파일을 선택합니다.", type=["png", "jpg", "jpeg"])
+        
+        st.markdown("**또는** 화면 캡처를 붙여넣으세요:")
+        pasted_image = safe_paste_button("📋 클립보드에서 붙여넣기", key="paste_image")
+        if pasted_image:
+            st.image(pasted_image, caption="붙여넣은 이미지", use_container_width=True)
+
     elif mode=='RAG' or mode=="Agent" or mode=="Agent (Chat)":
-        st.subheader("📋 문서 업로드")
-        uploaded_file = st.file_uploader("RAG를 위한 파일을 선택합니다.", type=["pdf", "txt", "py", "md", "csv", "json"], key=chat.fileId)
+        st.subheader("📋 문서/이미지 업로드")
+        uploaded_file = st.file_uploader("RAG를 위한 파일을 선택합니다.", type=["pdf", "txt", "py", "md", "csv", "json", "png", "jpg", "jpeg"], key=chat.fileId)
+        
+        st.markdown("**또는** 화면 캡처를 붙여넣으세요:")
+        pasted_image = safe_paste_button("📋 클립보드에서 붙여넣기", key="paste_agent")
+        if pasted_image:
+            st.image(pasted_image, caption="붙여넣은 이미지", use_container_width=True)
 
     chat.update(modelName, debugMode, reasoningMode, skillMode)
 
@@ -351,6 +376,26 @@ if clear_button==True:
 file_name = ""
 file_bytes = None
 state_of_code_interpreter = False
+
+# Handle pasted image from clipboard
+if pasted_image is not None and clear_button==False:
+    buf = io.BytesIO()
+    pasted_image.save(buf, format="PNG")
+    file_bytes = buf.getvalue()
+    file_name = "pasted_screenshot.png"
+    logger.info(f"pasted image: {file_name}, size={len(file_bytes)} bytes")
+
+    if mode == '이미지 분석':
+        st.image(pasted_image, caption="붙여넣은 이미지 미리보기", use_container_width=True)
+    elif mode in ('Agent', 'Agent (Chat)', 'RAG'):
+        chat.initiate()
+        if debugMode=='Enable':
+            st.info('붙여넣은 이미지를 업로드합니다.')
+        file_url = chat.upload_to_s3(file_bytes, file_name)
+        logger.info(f"pasted image uploaded: {file_url}")
+        import utils
+        utils.sync_data_source()
+
 if uploaded_file is not None and clear_button==False:
     logger.info(f"uploaded_file.name: {uploaded_file.name}")
     if uploaded_file.name:
@@ -502,8 +547,8 @@ if prompt := st.chat_input("메시지를 입력하세요."):
                 st.image(url, caption=file_name, use_container_width=True)
         
         elif mode == "이미지 분석":
-            if uploaded_file is None or uploaded_file == "":
-                st.error("파일을 먼저 업로드하세요.")
+            if file_bytes is None:
+                st.error("이미지를 먼저 업로드하거나 클립보드에서 붙여넣으세요.")
                 st.stop()
 
             else:
