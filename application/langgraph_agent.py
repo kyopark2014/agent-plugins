@@ -842,10 +842,12 @@ current_id = None
 async def run_langgraph_agent(query: str, mcp_servers: list, history_mode: str="Disable", containers: Optional[dict]=None) -> tuple[str, list]:
     global app, config, active_mcp_servers, active_skills, current_id
     
-    chat.index = 0
-    chat.streaming_index = 0
+    queue = containers['queue'] if containers else None
+    if queue:
+        queue.reset()
 
     artifacts = []
+    artifact_paths = []
     references = []
 
     skill_info = skill.selected_skill_info("base")
@@ -877,39 +879,33 @@ async def run_langgraph_agent(query: str, mcp_servers: list, history_mode: str="
                     if isinstance(content_item, dict):
                         if content_item.get('type') == 'text':
                             text_content = content_item.get('text', '')
-                            # logger.info(f"text_content: {text_content}")
                             
-                            # If tool was used, start fresh result
                             if tool_used:
                                 result = text_content
                                 tool_used = False
                             else:
                                 result += text_content
                                 
-                            # logger.info(f"result: {result}")                
                             chat.update_streaming_result(containers, result, "markdown")
 
                         elif content_item.get('type') == 'tool_use':
-                            # logger.info(f"content_item: {content_item}")      
                             if 'id' in content_item and 'name' in content_item:
                                 toolUseId = content_item.get('id', '')
                                 tool_name = content_item.get('name', '')
                                 logger.info(f"tool_name: {tool_name}, toolUseId: {toolUseId}")
-                                chat.streaming_index = chat.index
-                                chat.index += 1
+                                if queue:
+                                    queue.register_tool(toolUseId, tool_name)
                                                                     
                             if 'partial_json' in content_item:
                                 partial_json = content_item.get('partial_json', '')
-                                #logger.info(f"partial_json: {partial_json}")
                                 
                                 if toolUseId not in chat.tool_input_list:
                                     chat.tool_input_list[toolUseId] = ""                                
                                 chat.tool_input_list[toolUseId] += partial_json
                                 input = chat.tool_input_list[toolUseId]
-                                # logger.info(f"input: {input}")
 
-                                # logger.info(f"tool_name: {tool_name}, input: {input}, toolUseId: {toolUseId}")
-                                chat.update_streaming_result(containers, f"Tool: {tool_name}, Input: {input}", "info")
+                                if queue:
+                                    queue.tool_update(toolUseId, f"Tool: {tool_name}, Input: {input}")
                         
         elif isinstance(stream[0], ToolMessage):
             message = stream[0]
@@ -921,18 +917,34 @@ async def run_langgraph_agent(query: str, mcp_servers: list, history_mode: str="
             chat.add_notification(containers, f"Tool Result: {toolResult}")
             tool_used = True
             
-            content, urls, refs = chat.get_tool_info(tool_name, toolResult)
+            tool_content, tool_urls, refs = chat.get_tool_info(tool_name, toolResult)
             if refs:
                 for r in refs:
                     references.append(r)
                 logger.info(f"refs: {refs}")
-            if urls:
-                for url in urls:
+            if tool_urls:
+                for url in tool_urls:
                     artifacts.append(url)
-                logger.info(f"urls: {urls}")
+                logger.info(f"tool_urls: {tool_urls}")
 
-            if content:
-                logger.info(f"content: {content}")        
+            if isinstance(toolResult, str):
+                if "[artifacts]" in toolResult:
+                    for line in toolResult.split("[artifacts]")[-1].strip().split("\n"):
+                        line = line.strip()
+                        if line and os.path.isfile(line):
+                            artifact_paths.append(line)
+                    logger.info(f"artifact_paths from text: {artifact_paths}")
+
+                if tool_name == "write_file" and toolResult.startswith("File saved:"):
+                    saved = toolResult.split("File saved:", 1)[1].strip()
+                    if not os.path.isabs(saved):
+                        saved = os.path.join(WORKING_DIR, saved)
+                    if os.path.isfile(saved) and os.path.abspath(saved).startswith(os.path.abspath(ARTIFACTS_DIR)):
+                        artifact_paths.append(saved)
+                        logger.info(f"artifact_paths from write_file: {saved}")
+
+            if tool_content:
+                logger.info(f"content: {tool_content}")        
     
     if not result:
         result = "답변을 찾지 못하였습니다."        
@@ -945,7 +957,6 @@ async def run_langgraph_agent(query: str, mcp_servers: list, history_mode: str="
             ref += f"{i+1}. [{reference['title']}]({reference['url']}), {page_content}...\n"    
         result += ref
     
-    if containers is not None:
-        containers['notification'][chat.index].markdown(result)
+    chat.update_final_result(containers, result)
     
     return result, artifacts

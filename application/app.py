@@ -11,6 +11,7 @@ import skill
 import plugin
 import plugin_agent
 import utils
+from notification_queue import NotificationQueue
 
 from pathlib import Path
 
@@ -476,7 +477,7 @@ if prompt := st.chat_input("메시지를 입력하세요."):
                 containers = {
                     "tools": st.empty(),
                     "status": st.empty(),
-                    "notification": [st.empty() for _ in range(500)]
+                    "queue": NotificationQueue(container=status),
                 }
 
                 # Agent/Agent (Chat) use base skills (application/skills/), not plugin skills
@@ -522,7 +523,7 @@ if prompt := st.chat_input("메시지를 입력하세요."):
                         containers = {
                             "tools": st.empty(),
                             "status": st.empty(),
-                            "notification": [st.empty() for _ in range(500)]
+                            "queue": NotificationQueue(container=status),
                         }                        
                         response = asyncio.run(plugin_agent.run_plugin_agent(
                             query=prompt, 
