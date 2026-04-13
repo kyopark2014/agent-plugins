@@ -110,7 +110,7 @@ async def run_plugin_agent(query, mcp_servers, plugin_name, history_mode, contai
     chat.index = 0
     chat.streaming_index = 0
 
-    image_url = []
+    artifacts = []
     references = []
 
     command = None
@@ -191,7 +191,7 @@ async def run_plugin_agent(query, mcp_servers, plugin_name, history_mode, contai
                 logger.info(f"refs: {refs}")
             if urls:
                 for url in urls:
-                    image_url.append(url)
+                    artifacts.append(url)
                 logger.info(f"urls: {urls}")
 
             if content:

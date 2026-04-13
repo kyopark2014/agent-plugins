@@ -483,7 +483,7 @@ if prompt := st.chat_input("메시지를 입력하세요."):
                 if skill.skill_managers.get("base") is None:
                     skill.register_plugin_skills("base")
 
-                response, image_url = asyncio.run(langgraph_agent.run_langgraph_agent(
+                response, artifacts = asyncio.run(langgraph_agent.run_langgraph_agent(
                     query=prompt, 
                     mcp_servers=mcp_servers, 
                     history_mode=history_mode, 
@@ -492,10 +492,10 @@ if prompt := st.chat_input("메시지를 입력하세요."):
             st.session_state.messages.append({
                 "role": "assistant", 
                 "content": response,
-                "images": image_url if image_url else []
+                "artifacts": artifacts if artifacts else []
             })
 
-            for url in image_url:
+            for url in artifacts:
                 logger.info(f"url: {url}")
                 file_name = url[url.rfind('/')+1:]
                 st.image(url, caption=file_name, use_container_width=True)
