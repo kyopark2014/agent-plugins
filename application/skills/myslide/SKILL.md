@@ -44,11 +44,11 @@ QA_DIR      = {workspace}/artifacts/myslide-qa/       # QA render outputs (PDF, 
 ## Default Presenter
 
 When generating title/thank-you slides, use these defaults unless the user specifies otherwise:
-- Korean: **김제삼**
-- English: **Jesam Kim**
+- Korean: **발표자**
+- English: **Name**
 - Title: Solutions Architect
 - Company: Amazon Web Services
-- Email: jesamkim@amazon.com
+- Email: email@amazon.com
 
 ## Workflow
 
