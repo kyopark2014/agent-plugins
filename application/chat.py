@@ -177,14 +177,15 @@ def save_chat_history(text, msg):
 
 selected_chat = 0
 def get_max_output_tokens(model_id: str = "") -> int:
-    """Return the max output tokens based on the model ID."""
-    if "claude-opus-4-6" in model_id:
+    """Return max output tokens (`max_tokens` cap) per Amazon Bedrock Anthropic Claude model cards."""
+    mid = model_id.lower()
+    if "claude-opus-4-7" in mid or "claude-opus-4-6" in mid:
         return 128000
-    if "claude-opus-4-5" in model_id:
+    if "claude-opus-4-5" in mid:
         return 64000
-    if "claude-opus-4" in model_id or "claude-4-opus" in model_id:
-        return 32000
-    if "claude-sonnet-4" in model_id or "claude-4-sonnet" in model_id or "claude-haiku-4" in model_id:
+    if "claude-opus-4" in mid or "claude-4-opus" in mid:
+        return 128000
+    if "claude-sonnet-4" in mid or "claude-4-sonnet" in mid or "claude-haiku-4" in mid:
         return 64000
     return 8192
 
@@ -234,20 +235,19 @@ def get_chat(extended_thinking):
 
         parameters = {
             "max_tokens":maxOutputTokens,
-            "temperature":1,            
             "thinking": {
                 "type": "enabled",
                 "budget_tokens": thinking_budget
             },
             "stop_sequences": [STOP_SEQUENCE]
         }
+
     elif profile['model_type'] != 'openai' and extended_thinking=='Disable':
         parameters = {
-            "max_tokens":maxOutputTokens,     
-            "temperature":0.1,
-            "top_k":250,
+            "max_tokens":maxOutputTokens,
             "stop_sequences": [STOP_SEQUENCE]
         }
+
     elif profile['model_type'] == 'openai':
         parameters = {
             "max_tokens":maxOutputTokens,     
@@ -705,11 +705,10 @@ def get_parallel_processing_chat(models, selected):
 
     if profile['model_type'] != 'openai':
         parameters = {
-            "max_tokens":maxOutputTokens,     
-            "temperature":0.1,
-            "top_k":250,
+            "max_tokens":maxOutputTokens,
             "stop_sequences": [STOP_SEQUENCE]
         }
+
     else:
         parameters = {
             "max_tokens":maxOutputTokens,     
