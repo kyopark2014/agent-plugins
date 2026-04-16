@@ -513,11 +513,7 @@ if prompt := st.chat_input("메시지를 입력하세요."):
                 history_mode = "Enable"
 
             with st.status("thinking...", expanded=True, state="running") as status:
-                containers = {
-                    "tools": st.empty(),
-                    "status": st.empty(),
-                    "queue": NotificationQueue(container=status),
-                }
+                notification_queue = NotificationQueue(container=status)
 
                 # Agent/Agent (Chat) use base skills (application/skills/), not plugin skills
                 if skill.skill_managers.get("base") is None:
@@ -527,7 +523,7 @@ if prompt := st.chat_input("메시지를 입력하세요."):
                     query=prompt, 
                     mcp_servers=mcp_servers, 
                     history_mode=history_mode, 
-                    containers=containers))
+                    notification_queue=notification_queue))
 
             st.session_state.messages.append({
                 "role": "assistant", 
@@ -559,17 +555,13 @@ if prompt := st.chat_input("메시지를 입력하세요."):
             for plugin in plugin_list:
                 if mode == plugin["name"]:
                     with st.status("thinking...", expanded=True, state="running") as status:
-                        containers = {
-                            "tools": st.empty(),
-                            "status": st.empty(),
-                            "queue": NotificationQueue(container=status),
-                        }                        
+                        notification_queue = NotificationQueue(container=status)
                         response = asyncio.run(plugin_agent.run_plugin_agent(
                             query=prompt, 
                             mcp_servers=mcp_servers,
                             plugin_name=plugin["name"],
                             history_mode="Enable",
-                            containers=containers))
+                            notification_queue=notification_queue))
                         logger.info(f"response: {response}")
                         st.session_state.messages.append({"role": "assistant", "content": response})
 

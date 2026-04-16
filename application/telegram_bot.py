@@ -6,6 +6,7 @@ import os
 os.environ["DEV"] = "true"
 
 import chat
+import langgraph_agent
 import utils
 
 from telegram import Update
@@ -84,11 +85,11 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
 
     try:
-        response, image_url = await chat.run_langgraph_agent(
+        response, image_url = await langgraph_agent.run_langgraph_agent(
             query=user_message,
             mcp_servers=DEFAULT_MCP_SERVERS,
             history_mode="Enable",
-            containers=None,
+            notification_queue=None,
         )
         logger.info(f"[chat_id={chat_id}] response length: {len(response)}")
 

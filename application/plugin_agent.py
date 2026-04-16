@@ -103,11 +103,11 @@ active_mcp_servers = []
 active_plugin_name = None
 last_command = None
 
-async def run_plugin_agent(query, mcp_servers, plugin_name, history_mode, containers):
+async def run_plugin_agent(query, mcp_servers, plugin_name, history_mode, notification_queue):
     """Run plugin agent with MCP tools and skills."""
     global app, config, active_mcp_servers, active_skills, last_command
 
-    queue = containers['queue'] if containers else None
+    queue = notification_queue if notification_queue else None
     if queue:
         queue.reset()
 
@@ -155,7 +155,7 @@ async def run_plugin_agent(query, mcp_servers, plugin_name, history_mode, contai
                             else:
                                 result += text_content
 
-                            chat.update_streaming_result(containers, result, "markdown")
+                            chat.update_streaming_result(notification_queue, result, "markdown")
 
                         elif content_item.get('type') == 'tool_use':
                             if 'id' in content_item and 'name' in content_item:
@@ -183,7 +183,7 @@ async def run_plugin_agent(query, mcp_servers, plugin_name, history_mode, contai
             toolResult = message.content
             toolUseId = message.tool_call_id
             logger.info(f"toolResult: {toolResult}, toolUseId: {toolUseId}")
-            chat.add_notification(containers, f"Tool Result: {toolResult}")
+            chat.add_notification(notification_queue, f"Tool Result: {toolResult}")
             tool_used = True
 
             content, urls, refs = chat.get_tool_info(tool_name, toolResult)
@@ -210,6 +210,6 @@ async def run_plugin_agent(query, mcp_servers, plugin_name, history_mode, contai
             ref += f"{i+1}. [{reference['title']}]({reference['url']}), {page_content}...\n"
         result += ref
 
-    chat.update_final_result(containers, result)
+    chat.update_final_result(notification_queue, result)
 
     return result
