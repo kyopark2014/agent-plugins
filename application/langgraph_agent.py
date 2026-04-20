@@ -855,17 +855,21 @@ async def create_agent(mcp_servers: list, skill_list: list, history_mode: str="D
         app = buildChatAgentWithHistory(tools)
         config = {
             "recursion_limit": 100,
-            "configurable": {"thread_id": chat.user_id},
-            "tools": tools,
-            "system_prompt": system_prompt
+            "configurable": {
+                "thread_id": chat.user_id,
+                "tools": tools,
+                "system_prompt": system_prompt
+            }            
         }
     else:
         app = buildChatAgent(tools)
         config = {
             "recursion_limit": 100,
-            "configurable": {"thread_id": chat.user_id},
-            "tools": tools,
-            "system_prompt": system_prompt
+            "configurable": {
+                "thread_id": chat.user_id,
+                "tools": tools,
+                "system_prompt": system_prompt
+            }            
         }        
     
     return app, config
