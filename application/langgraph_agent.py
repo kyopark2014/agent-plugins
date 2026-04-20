@@ -803,7 +803,7 @@ def load_multiple_mcp_server_parameters(mcp_json: dict):
                 }
     return server_info
 
-async def create_agent(mcp_servers: list, history_mode: str="Disable") -> tuple[str, list]:
+async def create_agent(mcp_servers: list, skill_list: list, history_mode: str="Disable") -> tuple[str, list]:
     # builtin tools
     tools = get_builtin_tools()
     logger.info(f"builtin_tools count: {len(tools)}")
@@ -836,7 +836,9 @@ async def create_agent(mcp_servers: list, history_mode: str="Disable") -> tuple[
     if chat.skill_mode == "Enable":        
         tools.extend(skill.get_skill_tools())
 
-        skill_info = skill.selected_skill_info("base")
+        skill_info = skill.get_skill_info(skill_list)
+        logger.info(f"skill_info: {skill_info}")
+
         system_prompt = skill.build_skill_prompt(skill_info)
 
     else:
@@ -873,7 +875,7 @@ active_mcp_servers = []
 active_skills = []
 current_id = None
 
-async def run_langgraph_agent(query: str, mcp_servers: list, history_mode: str="Disable", notification_queue: Optional[Any]=None) -> tuple[str, list]:
+async def run_langgraph_agent(query: str, mcp_servers: list, skill_list: list, history_mode: str="Disable", notification_queue: Optional[Any]=None) -> tuple[str, list]:
     global app, config, active_mcp_servers, active_skills, current_id
     
     queue = notification_queue if notification_queue else None
@@ -884,14 +886,12 @@ async def run_langgraph_agent(query: str, mcp_servers: list, history_mode: str="
     artifact_paths = []
     references = []
 
-    skill_info = skill.selected_skill_info("base")
-
-    if app is None or mcp_servers != active_mcp_servers or active_skills != skill_info or current_id != chat.user_id:
+    if app is None or mcp_servers != active_mcp_servers or active_skills != skill_list or current_id != chat.user_id:
         active_mcp_servers = mcp_servers
-        active_skills = skill_info
+        active_skills = skill_list
         current_id = chat.user_id
 
-        app, config = await create_agent(mcp_servers, history_mode)
+        app, config = await create_agent(mcp_servers, skill_list, history_mode)
     
     if app is None:
         logger.error("Failed to create agent - app is None")

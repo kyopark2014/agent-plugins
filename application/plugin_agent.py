@@ -30,7 +30,7 @@ PLUGINS_DIR = os.path.join(WORKING_DIR, "plugins")
 
 from typing import Literal, Optional
 
-async def create_agent(mcp_servers: list, plugin_name: Optional[str]=None, command: Optional[str]=None, history_mode: str="Disable") -> tuple[str, list]:
+async def create_agent(mcp_servers: list, skill_list: list, plugin_name: Optional[str]=None, plugin_skill_list: Optional[list]=None, command: Optional[str]=None, history_mode: str="Disable") -> tuple[str, list]:
     # builtin tools
     tools = langgraph_agent.get_builtin_tools()
     logger.info(f"builtin_tools count: {len(tools)}")
@@ -62,9 +62,11 @@ async def create_agent(mcp_servers: list, plugin_name: Optional[str]=None, comma
     if chat.skill_mode == "Enable":       
         tools.extend(skill.get_skill_tools())
 
-        skill_info = skill.selected_skill_info("base")
-        plugin_skill_info = skill.selected_skill_info(plugin_name)
-        logger.info(f"skill_info: {skill_info}, plugin_skill_info: {plugin_skill_info}")        
+        skill_info = skill.get_skill_info(skill_list)
+        logger.info(f"skill_info: {skill_info}")
+
+        plugin_skill_info = skill.get_plugin_skill_info(plugin_name, plugin_skill_list)
+        logger.info(f"plugin_name: {plugin_name}, plugin_skill_info: {plugin_skill_info}")        
         skill_info.extend(plugin_skill_info)
 
         if command:
@@ -101,9 +103,10 @@ async def create_agent(mcp_servers: list, plugin_name: Optional[str]=None, comma
 app = config = None
 active_mcp_servers = []
 active_plugin_name = None
+active_plugin_skill_list = []
 last_command = None
 
-async def run_plugin_agent(query, mcp_servers, plugin_name, history_mode, notification_queue):
+async def run_plugin_agent(query, mcp_servers, skill_list, plugin_name, plugin_skill_list, history_mode, notification_queue):
     """Run plugin agent with MCP tools and skills."""
     global app, config, active_mcp_servers, active_skills, last_command
 
@@ -119,14 +122,14 @@ async def run_plugin_agent(query, mcp_servers, plugin_name, history_mode, notifi
         command = query.split(" ")[0].lstrip("/")
         logger.info(f"command: {command}")
 
-    selected_skill_info = skill.selected_skill_info("base")
-
-    if app is None or mcp_servers != active_mcp_servers or active_skills != selected_skill_info or last_command != command:
+    if app is None or mcp_servers != active_mcp_servers or active_skills != skill_list or active_plugin_name != plugin_name or active_plugin_skill_list != plugin_skill_list or last_command != command:
         active_mcp_servers = mcp_servers
-        active_skills = selected_skill_info
+        active_skills = skill_list
+        active_plugin_name = plugin_name
+        active_plugin_skill_list = plugin_skill_list
         last_command = command
 
-        app, config = await create_agent(mcp_servers, plugin_name, command, history_mode)
+        app, config = await create_agent(mcp_servers, skill_list, plugin_name, plugin_skill_list, command, history_mode)
     
     if app is None:
         logger.error("Failed to create agent - app is None")
