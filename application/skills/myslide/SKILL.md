@@ -193,6 +193,21 @@ See `icons/` directory for the full list of available service icons.
 
 Alternatively, craft SVG inline in the Node.js script and use `sharp` to convert to PNG base64.
 
+### Matplotlib charts (Python `execute_code` / PNG for slides)
+
+When generating bar, line, or metric charts with **Matplotlib** (e.g. LangGraph `execute_code`), the environment may ship **matplotlib 3.9+**. In those versions, `tick_params` and `Axis.set_tick_params` **do not accept `fontsize`** — that raises `ValueError: keyword fontsize is not recognized`. Use **`labelsize`** for tick label size instead.
+
+```python
+# ✅ CORRECT — tick label size
+ax.tick_params(axis="both", colors="#C8D0D8", labelsize=11)
+
+# ❌ WRONG — breaks on matplotlib 3.9+
+ax.tick_params(axis="both", colors="#C8D0D8", fontsize=11)
+```
+
+- **Axis titles** (`set_xlabel`, `set_ylabel`, `set_title`) still accept `fontsize` on the text artist — that API is unchanged.
+- Save chart PNGs under **`{workspace}/artifacts/myslide-assets/`** (same as other slide assets), then embed in PptxGenJS; do not rely on `/tmp` for assets that must be bundled with the deck.
+
 ### Diagram Type Selection for Presentations
 
 Presentations almost always need **High-Level diagrams** (logical grouping), not Infrastructure diagrams (VPC/Subnet).
@@ -236,10 +251,10 @@ that can be merged into myslide decks:
 ```bash
 # 1. Generate architecture diagram with aws-diagram skill
 python3 /path/to/aws-diagram/scripts/generate_diagram.py \
-  -i diagram.json -o /tmp/arch.svg --png --pptx /tmp/arch-slide.pptx
+  -i diagram.json -o {workspace}/artifacts/myslide-assets/arch.svg --png --pptx {workspace}/artifacts/myslide-assets/arch-slide.pptx
 
 # 2. Merge into myslide deck using add_slide.py
-python3 scripts/add_slide.py --deck output.pptx --insert /tmp/arch-slide.pptx --position 4
+python3 scripts/add_slide.py --deck output.pptx --insert {workspace}/artifacts/myslide-assets/arch-slide.pptx --position 4
 ```
 
 For High-Level diagrams in aws-diagram JSON, use `"type": "generic"` containers:

@@ -41,7 +41,7 @@ python3 "$SD35L_SCRIPT" \
   --negative-prompt "..." \
   --aspect-ratio 16:9 \
   --seed 42 \
-  --output-dir /tmp/myslide-assets/
+  --output-dir {workspace}/artifacts/myslide-assets/
 ```
 
 **Supported aspect ratios**: `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `2:3`, `3:2`, `21:9`, `9:21`
@@ -56,7 +56,7 @@ python3 "$SD35L_SCRIPT" \
   --prompt "Futuristic artificial intelligence visualization, interconnected neural network nodes with glowing orange and cyan pathways, deep dark navy background, volumetric lighting, cinematic wide angle composition, professional technology illustration, ultra detailed 3D render" \
   --negative-prompt "text, watermarks, logos, people, bright white background, cartoon, cluttered, busy" \
   --aspect-ratio 16:9 --seed 42001 \
-  --output-dir /tmp/myslide-assets/
+  --output-dir {workspace}/artifacts/myslide-assets/
 ```
 
 **Cloud/Infrastructure Topic:**
@@ -65,7 +65,7 @@ python3 "$SD35L_SCRIPT" \
   --prompt "Abstract cloud computing infrastructure, floating translucent server racks connected by light beams, dark cosmic background with subtle blue nebula, minimal clean composition, professional futuristic visualization, cinematic lighting" \
   --negative-prompt "text, watermarks, people, cartoon, bright colors, white background, cluttered" \
   --aspect-ratio 16:9 --seed 42002 \
-  --output-dir /tmp/myslide-assets/
+  --output-dir {workspace}/artifacts/myslide-assets/
 ```
 
 **Security Topic:**
@@ -74,7 +74,7 @@ python3 "$SD35L_SCRIPT" \
   --prompt "Digital security shield concept, translucent protective barrier with hexagonal grid pattern, glowing cyan and orange edges, dark environment with subtle particle effects, professional 3D render, centered composition, cybersecurity visualization" \
   --negative-prompt "text, watermarks, people, cartoon, padlock icon, bright background" \
   --aspect-ratio 16:9 --seed 42003 \
-  --output-dir /tmp/myslide-assets/
+  --output-dir {workspace}/artifacts/myslide-assets/
 ```
 
 **Data/Analytics Topic:**
@@ -83,7 +83,7 @@ python3 "$SD35L_SCRIPT" \
   --prompt "Abstract data visualization flowing through space, luminous data streams and holographic charts, deep dark background with blue and purple tones, minimal futuristic composition, professional technology illustration, cinematic depth of field" \
   --negative-prompt "text, numbers, watermarks, people, bright white, cartoon, cluttered" \
   --aspect-ratio 16:9 --seed 42004 \
-  --output-dir /tmp/myslide-assets/
+  --output-dir {workspace}/artifacts/myslide-assets/
 ```
 
 ### Content Card Illustrations (Square 1:1)
@@ -94,7 +94,7 @@ python3 "$SD35L_SCRIPT" \
   --prompt "Minimalist AI agent visualization, glowing humanoid silhouette made of circuit patterns, dark navy background, single orange accent glow, centered composition, clean professional 3D render" \
   --negative-prompt "text, busy background, multiple figures, bright colors" \
   --aspect-ratio 1:1 --seed 55001 \
-  --output-dir /tmp/myslide-assets/
+  --output-dir {workspace}/artifacts/myslide-assets/
 ```
 
 **Knowledge Base / RAG:**
@@ -103,7 +103,7 @@ python3 "$SD35L_SCRIPT" \
   --prompt "Digital knowledge library, floating holographic books and documents connected by light threads, dark background, blue and orange glow accents, minimalist 3D render, centered composition" \
   --negative-prompt "text, people, cartoon, bright background, cluttered" \
   --aspect-ratio 1:1 --seed 55002 \
-  --output-dir /tmp/myslide-assets/
+  --output-dir {workspace}/artifacts/myslide-assets/
 ```
 
 ### Abstract Backgrounds (16:9)
@@ -114,7 +114,7 @@ python3 "$SD35L_SCRIPT" \
   --prompt "Very dark cosmic nebula, deep space with subtle blue and purple gas wisps, scattered tiny stars, extremely dark overall tone, minimal clean atmosphere, suitable as dark presentation background" \
   --negative-prompt "text, planets, bright colors, people, objects, busy details, white, light areas" \
   --aspect-ratio 16:9 --seed 60001 \
-  --output-dir /tmp/myslide-assets/
+  --output-dir {workspace}/artifacts/myslide-assets/
 ```
 
 **Geometric/Tech Theme:**
@@ -123,7 +123,7 @@ python3 "$SD35L_SCRIPT" \
   --prompt "Abstract dark geometric pattern, interconnected hexagons and triangles with subtle glowing edges, deep navy to black gradient, very minimal and clean, low contrast, suitable as dark presentation background" \
   --negative-prompt "text, bright colors, people, objects, high contrast, white, busy" \
   --aspect-ratio 16:9 --seed 60002 \
-  --output-dir /tmp/myslide-assets/
+  --output-dir {workspace}/artifacts/myslide-assets/
 ```
 
 ## Color Matching with AWS Theme
@@ -158,7 +158,7 @@ for i in "${!TOPICS[@]}"; do
     --negative-prompt "text, busy, cluttered, bright background" \
     --aspect-ratio 1:1 \
     --seed $((SEED_BASE + i)) \
-    --output-dir /tmp/myslide-assets/
+    --output-dir {workspace}/artifacts/myslide-assets/
 done
 ```
 
@@ -175,7 +175,7 @@ function loadImageBase64(filePath) {
 }
 
 // Usage
-const heroBase64 = loadImageBase64('/tmp/myslide-assets/sd35l_1.png');
+const heroBase64 = loadImageBase64('{workspace}/artifacts/myslide-assets/sd35l_1.png');
 slide.addImage({ data: heroBase64, x: 5.0, y: 0, w: 8.33, h: 7.5 });
 ```
 
