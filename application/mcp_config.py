@@ -73,6 +73,10 @@ def load_config(mcp_type):
         mcp_type = "aws_sentral"
     elif mcp_type == "AWS Outlook (Employee)":
         mcp_type = "aws_outlook"
+    elif mcp_type == "AWS Slack (Employee)":
+        mcp_type = "aws_slack"
+    elif mcp_type == "AWS Loop (Employee)":
+        mcp_type = "aws_loop"
 
     if mcp_type == "tavily":
         return {

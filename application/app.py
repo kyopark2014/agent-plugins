@@ -105,6 +105,8 @@ with st.sidebar:
         "browser-use",
         "AWS Sentral (Employee)",
         "AWS Outlook (Employee)",
+        "AWS Slack (Employee)",
+        "AWS Loop (Employee)",
         "사용자 설정"
     ]
 
