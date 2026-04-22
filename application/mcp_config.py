@@ -339,6 +339,26 @@ def load_config(mcp_type):
                 }
             }
         }
+    
+    elif mcp_type == "aws_slack":
+        return {
+            "mcpServers" : {
+                "slack-mcp" : {
+                "command" : "slack-mcp",
+                "args" : [ ]
+                }
+            }
+        }
+    
+    elif mcp_type == "aws_loop":
+        return {
+            "mcpServers" : {
+                "loop-mcp" : {
+                    "command" : "loop-mcp",
+                    "args" : [ ]
+                }
+            }
+        }
 
     elif mcp_type == "사용자 설정":
         return mcp_user_config
