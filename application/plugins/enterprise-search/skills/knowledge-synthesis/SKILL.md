@@ -1,6 +1,7 @@
 ---
 name: knowledge-synthesis
-description: Combines search results from multiple sources into coherent, deduplicated answers with source attribution. Handles confidence scoring based on freshness and authority, and summarizes large result sets effectively.
+description: >-
+  Combine search results from multiple sources into coherent, deduplicated answers with source attribution and confidence scoring. Use when synthesizing search results, merging findings from multiple sources, deduplicating answers, or when the user says "combine these results", "synthesize findings", "merge search results", "summarize with sources".
 ---
 
 # Knowledge Synthesis
