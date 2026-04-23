@@ -625,8 +625,10 @@ def upload_to_s3(file_bytes, file_name):
         )
         logger.info(f"upload response: {response}")
 
-        #url = f"https://{s3_bucket}.s3.amazonaws.com/{s3_key}"
-        url = path+'/'+s3_image_prefix+'/'+parse.quote(file_name)
+        if content_type == "image/jpeg" or content_type == "image/png":
+            url = path + "/" + s3_image_prefix + "/" + parse.quote(file_name)
+        else:
+            url = path + "/" + s3_prefix + "/" + parse.quote(file_name)
         return url
     
     except Exception as e:
