@@ -25,8 +25,8 @@ DISCORD_BOT_TOKEN = (
 )
 
 DEFAULT_MODEL = "Claude 4.7 Opus"
-DEFAULT_MCP_SERVERS = ["web_fetch", "slack", "notion", "tavily", "aws_documentation"]
-DEFAULT_SKILL_LIST = ["skill-creator", "graphify", "myslide"]
+DEFAULT_MCP_SERVERS = ["web_fetch", "slack", "notion", "tavily", "aws_documentation", "korea_weather"]
+DEFAULT_SKILL_LIST = ["skill-creator", "graphify", "myslide", "browser-use"]
 
 chat.update(DEFAULT_MODEL, "Enable", "Disable", "Enable")
 
