@@ -43,6 +43,7 @@ RUN pip install pandas numpy
 RUN pip install tavily-python pytz
 RUN pip install beautifulsoup4==4.12.3 plotly_express==0.4.1 matplotlib==3.10.0 
 RUN pip install opensearch-py wikipedia aioboto3 requests
+RUN pip install python-telegram-bot discord.py
 RUN pip install uv kaleido diagrams graphviz rich colorama finance-datareader PyPDF2 pyyaml
 RUN pip install python-pptx
 # Skills: docx / xlsx / pptx / myslide

@@ -3270,6 +3270,7 @@ TG=$(aws secretsmanager get-secret-value --secret-id "$SECRET_ID" --region "$REG
 if [ -n "$TG" ]; then
   docker rm -f telegram-bot 2>/dev/null || true
   docker run -d --restart=always --name telegram-bot \
+    --no-healthcheck \
     -w /app \
     -v /home/ssm-user/{git_name}/application:/app/application \
     --entrypoint python \
@@ -3280,14 +3281,15 @@ else
   echo "Telegram API key not set; skipping telegram-bot container" >> /var/log/user-data.log
 fi
 
-# Discord bot: mount only config.json so application/discord_bot.py comes from the image (full application/ mount would hide image files if host clone lacks them). Rebuild image after git pull if the bot script changed.
+# Discord bot: same as Telegram — mount full host application/ so discord_bot.py is always from the git clone (image may be built without that file or under a different tag).
 DISCORD_SECRET_ID="discordapikey-$PROJECT"
 DC=$(aws secretsmanager get-secret-value --secret-id "$DISCORD_SECRET_ID" --region "$REGION" --query 'SecretString' --output text 2>/dev/null | python3 -c 'import sys,json; s=sys.stdin.read().strip(); d=json.loads(s) if s else {{}}; print((d.get("discord_bot_token") or "").strip())' 2>/dev/null)
 if [ -n "$DC" ]; then
   docker rm -f discord-bot 2>/dev/null || true
   docker run -d --restart=always --name discord-bot \
+    --no-healthcheck \
     -w /app \
-    -v /home/ssm-user/{git_name}/application/config.json:/app/application/config.json \
+    -v /home/ssm-user/{git_name}/application:/app/application \
     --entrypoint python \
     streamlit-app \
     application/discord_bot.py
