@@ -689,6 +689,22 @@ def create_secrets() -> Dict[str, str]:
                 "notion_api_key": ""
             }
         },
+        "telegram": {
+            "name": f"telegramapikey-{project_name}",
+            "description": "secret for telegram api key",
+            "secret_value": {
+                "project_name": project_name,
+                "telegram_api_key": ""
+            }
+        },
+        "discord": {
+            "name": f"discordapikey-{project_name}",
+            "description": "secret for discord bot token",
+            "secret_value": {
+                "project_name": project_name,
+                "discord_bot_token": ""
+            }
+        },
         "slack": {
             "name": f"slackapikey-{project_name}",
             "description": "secret for slack api key",
@@ -719,6 +735,14 @@ def create_secrets() -> Dict[str, str]:
                     logger.info(f"Enter credential of {secret_config['name']} (Notion API Key):")
                     api_key = input(f"Creating {secret_config['name']} - Notion API Key: ").strip()
                     secret_config["secret_value"]["notion_api_key"] = api_key
+                elif key == "telegram":
+                    logger.info(f"Enter credential of {secret_config['name']} (Telegram Bot API Key):")
+                    api_key = input(f"Creating {secret_config['name']} - Telegram Bot API Key: ").strip()
+                    secret_config["secret_value"]["telegram_api_key"] = api_key
+                elif key == "discord":
+                    logger.info(f"Enter credential of {secret_config['name']} (Discord Bot Token):")
+                    api_key = input(f"Creating {secret_config['name']} - Discord Bot Token: ").strip()
+                    secret_config["secret_value"]["discord_bot_token"] = api_key
                 elif key == "slack":
                     logger.info(f"Enter credential of {secret_config['name']} (Slack Team ID and Bot Token):")
                     team_id = input(f"Creating {secret_config['name']} - Slack Team ID: ").strip()
@@ -3204,7 +3228,7 @@ set -x
 yum update -y
 
 # Install packages
-yum install -y git docker
+yum install -y git docker awscli
 
 # Start docker
 systemctl start docker
@@ -3232,10 +3256,45 @@ cat > /home/ssm-user/{git_name}/application/config.json << 'EOF'
 EOF
 chown -R ssm-user:ssm-user /home/ssm-user/{git_name}
 
-# Build and run docker with volume mount for config.json
+# Build and run docker: mount full host application/ (git clone) so telegram_bot.py, etc. match
+# the repo on disk even if the image was built from an older commit without these files
 cd /home/ssm-user/{git_name}
 docker build -f Dockerfile -t streamlit-app .
-docker run -d --restart=always -p 8501:8501 -v $(pwd)/application/config.json:/app/application/config.json --name app streamlit-app
+docker run -d --restart=always -p 8501:8501 -v /home/ssm-user/{git_name}/application:/app/application --name app streamlit-app
+
+# Telegram bot: same image, background container (only if API key exists in Secrets Manager)
+REGION=$(python3 -c "import json; print(json.load(open('application/config.json'))['region'])")
+PROJECT=$(python3 -c "import json; print(json.load(open('application/config.json'))['projectName'])")
+SECRET_ID="telegramapikey-$PROJECT"
+TG=$(aws secretsmanager get-secret-value --secret-id "$SECRET_ID" --region "$REGION" --query 'SecretString' --output text 2>/dev/null | python3 -c 'import sys,json; s=sys.stdin.read().strip(); d=json.loads(s) if s else {{}}; print((d.get("telegram_api_key") or "").strip())' 2>/dev/null)
+if [ -n "$TG" ]; then
+  docker rm -f telegram-bot 2>/dev/null || true
+  docker run -d --restart=always --name telegram-bot \
+    -w /app \
+    -v /home/ssm-user/{git_name}/application:/app/application \
+    --entrypoint python \
+    streamlit-app \
+    application/telegram_bot.py
+  echo "Telegram bot container started (docker logs -f telegram-bot)" >> /var/log/user-data.log
+else
+  echo "Telegram API key not set; skipping telegram-bot container" >> /var/log/user-data.log
+fi
+
+# Discord bot: mount only config.json so application/discord_bot.py comes from the image (full application/ mount would hide image files if host clone lacks them). Rebuild image after git pull if the bot script changed.
+DISCORD_SECRET_ID="discordapikey-$PROJECT"
+DC=$(aws secretsmanager get-secret-value --secret-id "$DISCORD_SECRET_ID" --region "$REGION" --query 'SecretString' --output text 2>/dev/null | python3 -c 'import sys,json; s=sys.stdin.read().strip(); d=json.loads(s) if s else {{}}; print((d.get("discord_bot_token") or "").strip())' 2>/dev/null)
+if [ -n "$DC" ]; then
+  docker rm -f discord-bot 2>/dev/null || true
+  docker run -d --restart=always --name discord-bot \
+    -w /app \
+    -v /home/ssm-user/{git_name}/application/config.json:/app/application/config.json \
+    --entrypoint python \
+    streamlit-app \
+    application/discord_bot.py
+  echo "Discord bot container started (docker logs -f discord-bot)" >> /var/log/user-data.log
+else
+  echo "Discord bot token not set; skipping discord-bot container" >> /var/log/user-data.log
+fi
 
 # Make update.sh executable for manual execution via SSM
 chmod a+rx update.sh

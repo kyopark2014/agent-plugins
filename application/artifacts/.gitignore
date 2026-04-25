@@ -22,3 +22,5 @@ config.json
 *.svg
 *.eps
 *.pdf
+myslide*
+qa*

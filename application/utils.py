@@ -64,6 +64,35 @@ logger.info(f"bedrock_region: {bedrock_region}")
 projectName = config.get('projectName', 'mop')
 logger.info(f"projectName: {projectName}")
 
+
+def persist_config_updates(updates):
+    """Merge values fetched from Secrets Manager into config and write config.json."""
+    global config
+    if not updates:
+        return
+    changed = False
+    for key, value in updates.items():
+        if value is None:
+            continue
+        s = value.strip() if isinstance(value, str) else str(value)
+        if not s:
+            continue
+        if config.get(key) != s:
+            config[key] = s
+            changed = True
+    if not changed:
+        return
+    try:
+        with open(config_path, "w", encoding="utf-8") as f:
+            json.dump(config, f, indent=2, ensure_ascii=False)
+        logger.info(
+            "Saved Secrets Manager values to config.json: %s",
+            ", ".join(str(k) for k in updates if updates.get(k)),
+        )
+    except Exception as e:
+        logger.warning("Failed to write config.json: %s", e)
+
+
 def get_contents_type(file_name):
     if file_name.lower().endswith((".jpg", ".jpeg")):
         content_type = "image/jpeg"
@@ -106,7 +135,7 @@ def save_mcp_env(mcp_env):
     with open(mcp_env_path, "w", encoding="utf-8") as f:
         json.dump(mcp_env, f)
 
-# api key to get weather information in agent
+# api key to get information in agent
 if aws_access_key and aws_secret_key:
     secretsmanager = boto3.client(
         service_name='secretsmanager',
@@ -121,86 +150,134 @@ else:
         region_name=bedrock_region
     )
 
-# api key for slack
-slack_bot_token = ""
-slack_team_id = ""
-try:
-    get_slack_secret = secretsmanager.get_secret_value(
-        SecretId=f"slackapikey-{projectName}"
-    )
-    secret = json.loads(get_slack_secret['SecretString'])
-    slack_bot_token = secret.get('slack_bot_token', '')
-    slack_team_id = secret.get('slack_team_id', '')
-    if slack_bot_token:
-        os.environ["SLACK_BOT_TOKEN"] = slack_bot_token
-    if slack_team_id:
-        os.environ["SLACK_TEAM_ID"] = slack_team_id
-except Exception as e:
-    logger.info(f"Slack credential is required: {e}")
-    pass
+# Tavily Search API key: prefer config.json, else Secrets Manager
+tavily_api_wrapper = ""
+tavily_key = (config.get("tavily_api_key") or "").strip()
+if tavily_key:
+    tavily_api_wrapper = TavilySearchAPIWrapper(tavily_api_key=tavily_key)
+    os.environ["TAVILY_API_KEY"] = tavily_key
+else:
+    try:
+        get_tavily_api_secret = secretsmanager.get_secret_value(
+            SecretId=f"tavilyapikey-{projectName}"
+        )
+        secret = json.loads(get_tavily_api_secret["SecretString"])
 
-# api key to use Tavily Search
-tavily_key = tavily_api_wrapper = ""
-try:
-    get_tavily_api_secret = secretsmanager.get_secret_value(
-        SecretId=f"tavilyapikey-{projectName}"
-    )
-    #print('get_tavily_api_secret: ', get_tavily_api_secret)
-    secret = json.loads(get_tavily_api_secret['SecretString'])
-    #print('secret: ', secret)
-
-    if "tavily_api_key" in secret:
-        tavily_key = secret['tavily_api_key']
-        #print('tavily_api_key: ', tavily_api_key)
+        if "tavily_api_key" in secret:
+            tavily_key = (secret["tavily_api_key"] or "").strip()
 
         if tavily_key:
             tavily_api_wrapper = TavilySearchAPIWrapper(tavily_api_key=tavily_key)
             os.environ["TAVILY_API_KEY"] = tavily_key
-
+            persist_config_updates({"tavily_api_key": tavily_key})
         else:
-            logger.info(f"tavily_key is required.")
-except Exception as e: 
-    logger.info(f"Tavily credential is required: {e}")
-    # raise e
-    pass
+            logger.info("tavily_key is required.")
+    except Exception as e:
+        logger.info(f"Tavily credential is required: {e}")
+        pass
 
-# api key to use Notion
-notion_api_key = ""
-try:
-    get_notion_api_secret = secretsmanager.get_secret_value(
-        SecretId=f"notionapikey-{projectName}"
-    )
-    secret = json.loads(get_notion_api_secret['SecretString'])
+# Notion API key: prefer config.json, else Secrets Manager
+notion_api_key = (config.get("notion_api_key") or "").strip()
+if notion_api_key:
+    os.environ["NOTION_API_KEY"] = notion_api_key
+else:
+    try:
+        get_notion_api_secret = secretsmanager.get_secret_value(
+            SecretId=f"notionapikey-{projectName}"
+        )
+        secret = json.loads(get_notion_api_secret["SecretString"])
 
-    if "notion_api_key" in secret:
-        notion_api_key = secret['notion_api_key']
+        if "notion_api_key" in secret:
+            notion_api_key = (secret["notion_api_key"] or "").strip()
 
         if notion_api_key:
             os.environ["NOTION_API_KEY"] = notion_api_key
+            persist_config_updates({"notion_api_key": notion_api_key})
         else:
-            logger.info(f"notion_api_key is required.")
-except Exception as e:
-    logger.info(f"Notion credential is required: {e}")
-    pass
+            logger.info("notion_api_key is required.")
+    except Exception as e:
+        logger.info(f"Notion credential is required: {e}")
+        pass
 
-# api key to use Telegram
-telegram_api_key = ""
-try:
-    get_telegram_api_secret = secretsmanager.get_secret_value(
-        SecretId=f"telegramapikey-{projectName}"
-    )
-    secret = json.loads(get_telegram_api_secret['SecretString'])
+# Telegram API key: prefer config.json, else Secrets Manager
+telegram_api_key = (config.get("telegram_api_key") or "").strip()
+if telegram_api_key:
+    os.environ["TELEGRAM_API_KEY"] = telegram_api_key
+else:
+    try:
+        get_telegram_api_secret = secretsmanager.get_secret_value(
+            SecretId=f"telegramapikey-{projectName}"
+        )
+        secret = json.loads(get_telegram_api_secret["SecretString"])
 
-    if "telegram_api_key" in secret:
-        telegram_api_key = secret['telegram_api_key']
+        if "telegram_api_key" in secret:
+            telegram_api_key = (secret["telegram_api_key"] or "").strip()
 
         if telegram_api_key:
             os.environ["TELEGRAM_API_KEY"] = telegram_api_key
+            persist_config_updates({"telegram_api_key": telegram_api_key})
         else:
-            logger.info(f"telegram_api_key is required.")
-except Exception as e:
-    logger.info(f"Telegram credential is required: {e}")
-    pass
+            logger.info("telegram_api_key is required.")
+    except Exception as e:
+        logger.info(f"Telegram credential is required: {e}")
+        pass
+
+# Discord bot token: prefer config.json, else Secrets Manager
+discord_bot_token = (config.get("discord_bot_token") or "").strip()
+if discord_bot_token:
+    os.environ["DISCORD_BOT_TOKEN"] = discord_bot_token
+else:
+    try:
+        get_discord_secret = secretsmanager.get_secret_value(
+            SecretId=f"discordapikey-{projectName}"
+        )
+        secret = json.loads(get_discord_secret["SecretString"])
+
+        if "discord_bot_token" in secret:
+            discord_bot_token = (secret["discord_bot_token"] or "").strip()
+
+        if discord_bot_token:
+            os.environ["DISCORD_BOT_TOKEN"] = discord_bot_token
+            persist_config_updates({"discord_bot_token": discord_bot_token})
+        else:
+            logger.info("discord_bot_token is required.")
+    except Exception as e:
+        logger.info(f"Discord credential is required: {e}")
+        pass
+
+# Slack: prefer config.json; any missing fields are filled from Secrets Manager
+slack_bot_token = (config.get("slack_bot_token") or "").strip()
+slack_team_id = (config.get("slack_team_id") or "").strip()
+slack_token_from_config = bool(slack_bot_token)
+slack_team_from_config = bool(slack_team_id)
+if slack_bot_token:
+    os.environ["SLACK_BOT_TOKEN"] = slack_bot_token
+if slack_team_id:
+    os.environ["SLACK_TEAM_ID"] = slack_team_id
+
+if not slack_bot_token or not slack_team_id:
+    try:
+        get_slack_secret = secretsmanager.get_secret_value(
+            SecretId=f"slackapikey-{projectName}"
+        )
+        secret = json.loads(get_slack_secret["SecretString"])
+        if not slack_bot_token:
+            slack_bot_token = (secret.get("slack_bot_token") or "").strip()
+            if slack_bot_token:
+                os.environ["SLACK_BOT_TOKEN"] = slack_bot_token
+        if not slack_team_id:
+            slack_team_id = (secret.get("slack_team_id") or "").strip()
+            if slack_team_id:
+                os.environ["SLACK_TEAM_ID"] = slack_team_id
+        slack_persist = {}
+        if not slack_token_from_config and slack_bot_token:
+            slack_persist["slack_bot_token"] = slack_bot_token
+        if not slack_team_from_config and slack_team_id:
+            slack_persist["slack_team_id"] = slack_team_id
+        persist_config_updates(slack_persist)
+    except Exception as e:
+        logger.info(f"Slack credential is required: {e}")
+        pass
 
 def sanitize_data_source_name(name):
     """
