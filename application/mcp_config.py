@@ -223,27 +223,6 @@ def load_config(mcp_type):
             }
         }
 
-    elif mcp_type == "outlook":
-        secret_name = f"outlook-mcp-user-email"
-        secret_value = json.loads(get_secret_value(secret_name))
-        OUTLOOK_MCP_USER_EMAIL = secret_value['value']
-        if not OUTLOOK_MCP_USER_EMAIL:
-            logger.info(f"No outlook user email found in secret manager")
-            return {}
-        else:
-            logger.info(f"outlook user email: {OUTLOOK_MCP_USER_EMAIL}")
-            return {
-                "mcpServers": {
-                    "outlook": {
-                        "command": f"{workingDir}/outlook-mac/outlook_mcp.py",
-                        "env":{
-                            "USER_EMAIL":OUTLOOK_MCP_USER_EMAIL,
-                            "OUTLOOK_MCP_LOG_LEVEL":"INFO"
-                        }
-                    }
-                }
-            }
-    
     elif mcp_type == "notion":
         return {
             "mcpServers": {
