@@ -329,10 +329,13 @@ def load_config(mcp_type):
             "mcpServers": {
                 "aws_outlook": {
                     "command": os.path.expanduser("~/.toolbox/bin/aws-outlook-mcp"),
-                    "args": []
+                    "args": [],
+                    "env": {
+                        "OUTLOOK_MCP_ENABLE_WRITES": "true",
+                    },
                 }
             }
-        }   
+        }
     
     elif mcp_type == "browser-use":
         return {
