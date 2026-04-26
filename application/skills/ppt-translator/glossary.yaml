@@ -6,7 +6,7 @@
 # When the source and target strings are identical, the term is kept as-is
 # (i.e., "do not translate").
 #
-# Override the path via CLI: `ppt-translate translate ... -g custom.yaml`
+# Override the path via CLI: `python -m ppt_translator.cli translate ... -g custom.yaml`
 # Default search order:
 #   1) ./glossary.yaml  (current working directory)
 #   2) ~/.ppt-translator/glossary.yaml

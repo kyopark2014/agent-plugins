@@ -2,33 +2,46 @@
 name: ppt-translator
 description: >-
   Amazon Bedrock 기반 PowerPoint(.pptx) 번역. 서식·레이아웃·차트 메타(제목/축 등)를 보존하며
-  텍스트를 한국어(ko) 등 대상 언어로 변환. CLI(`ppt-translate`)·MCP(FastMCP) 지원, SQLite 캐시·
-  용어집·원문 언어 자동 감지. PPT/슬라이드 번역, pptx 한국어, Bedrock 프레젠테이션 번역,
-  batch translate, dry-run 비용 추정, MCP `translate_powerpoint` 요청 시 사용.
+  텍스트를 한국어(ko) 등 대상 언어로 변환. CLI(`python -m ppt_translator.cli`)·SQLite 캐시·용어집·
+  원문 언어 자동 감지. PPT/슬라이드 번역, pptx 한국어, Bedrock 프레젠테이션 번역, batch translate,
+  dry-run 비용 추정.
 ---
 
 # PPT Translator (한국어 변환)
 
-번역기 **소스·실행 기준 경로**는 저장소 내 **`application/skills/ppt-translator/`** 한 곳이다. (`ref/` 의존 없음.)
+## Directory Convention (경로 혼동 방지)
 
-## 번들 구성 (필수만)
+| 심볼 | 의미 |
+|------|------|
+| **`{workspace}`** | **프로젝트(저장소) 루트** — `application/` 디렉터리를 포함하는 최상위 경로 |
+| **`{WORKING_DIR}`** | **`application/`** 디렉터리 — 이 저장소에서 시스템이 노출하는 작업 루트 |
 
-| 항목 | 경로 (저장소 루트 기준) |
-|------|-------------------------|
-| 패키지 | `application/skills/ppt-translator/ppt_translator/` |
-| CLI | `ppt_translator/cli.py` → 설치 후 `ppt-translate` |
-| MCP | `application/skills/ppt-translator/mcp_server.py` |
-| 프로젝트 | `pyproject.toml`, `requirements.txt` |
-| 용어집 예시 | `glossary.yaml` (작업 디렉터리 `./glossary.yaml` 도 자동 탐색) |
-| 샘플 | `samples/en.pptx` |
-| 옵션·구조 참고 | `docs/cheatsheet.md`, `docs/ppt_handler_structure.md` |
-| 패키지 메타 | `README.md` |
+이 스킬의 **유일한 소스·실행 루트**:
 
-이미지·장문 README 등은 번들에 넣지 않았다. 추가 설명은 upstream [ppt-translator](https://github.com/daekeun-ml/ppt-translator) 저장소를 참고한다.
+```
+{WORKING_DIR}/skills/ppt-translator
+```
+
+- 모든 `cd`, `read_file`, `pip install -r requirements.txt` 경로는 위 경로를 기준으로 쓴다.
+- `python -m ppt_translator.cli` 를 쓰려면 **CWD를 위 경로로 설정**해야 `ppt_translator` 패키지가 `sys.path`에 잡힌다.
+
+## 번들 구성
+
+| 항목 | 경로 |
+|------|------|
+| 에이전트 지침 | `{WORKING_DIR}/skills/ppt-translator/SKILL.md` (이 파일) |
+| 패키지 | `{WORKING_DIR}/skills/ppt-translator/ppt_translator/` |
+| CLI | `python -m ppt_translator.cli` (Click) |
+| 의존성 | `{WORKING_DIR}/skills/ppt-translator/requirements.txt` |
+| 용어집 예시 | `{WORKING_DIR}/skills/ppt-translator/glossary.yaml` — CWD에 `./glossary.yaml` 이 있으면 자동 탐색 |
+
+전체 옵션: `python -m ppt_translator.cli --help` 및 각 서브커맨드 `--help`.
+구조·클래스: `ppt_translator/ppt_handler.py` (`FormattingExtractor`, `TextFrameUpdater`, `PowerPointTranslator`).
+upstream 문서: [ppt-translator](https://github.com/daekeun-ml/ppt-translator)
 
 ## 데이터 흐름 (수정 시 이 순서 유지)
 
-1. **진입**: `cli.py` (Click) 또는 `mcp_server.py` (FastMCP 도구).
+1. **진입**: `cli.py` (Click).
 2. **오케스트레이션**: `ppt_handler.PowerPointTranslator` — 슬라이드·도형·노트·차트 대상, 서식 보존 번역.
 3. **LLM**: `translation_engine.py` + `bedrock_client.py`, `config.Config` 의 모델·토큰 한도.
 4. **원문**: `language_detection.py` — 자동 감지(옵션); 원문==대상이면 API 생략.
@@ -37,45 +50,99 @@ description: >-
 7. **캐시·비용**: `cache.py`, `pricing.py`.
 8. **용어·프롬프트**: `glossary.py`, `prompts.py`.
 
-별도 스크립트로 “간단 번역” 파이프라인을 만들지 말고 위 모듈을 확장한다.
+별도 스크립트로 "간단 번역" 파이프라인을 만들지 말고 위 모듈을 확장한다.
 
 ## 한국어(ko) 기본값
 
 `ppt_translator/config.py` 의 `Config.DEFAULT_TARGET_LANGUAGE` 는 기본 **`ko`**. 언어 미지정 시 대상은 한국어로 둔다. 한국어 폰트는 `FONT_KOREAN` / `FONT_MAP['ko']`.
 
-## CLI (이 디렉터리를 프로젝트 루트로)
-
-```bash
-cd application/skills/ppt-translator
-uv sync   # 또는: pip install -e .
-uv run ppt-translate translate path/to/slides.pptx --target-language ko
-```
-
-자주 쓰는 옵션(상세는 `docs/cheatsheet.md`):
-
-- 슬라이드만: `translate-slides ... --slides "1,3" -t ko`
-- 폴더 일괄: `batch-translate samples/ -t ko`
-- 메타만: `info samples/en.pptx`
-- 비용만: `--dry-run`
-- 캐시: 기본 `~/.ppt-translator/cache.db` — `--no-cache` / `--cache-backend memory`
-- 용어집: `./glossary.yaml` 또는 `-g path.yaml`
-- 차트 제외: `--no-charts`
-
-## MCP 서버
-
-```bash
-cd application/skills/ppt-translator
-uv run python mcp_server.py
-```
-
-도구 이름: `translate_powerpoint`, `translate_specific_slides`, `get_slide_info`, `get_slide_preview`, `list_supported_languages`, `list_supported_models`, `get_translation_help`, `batch_translate_powerpoint`, `post_process_powerpoint`. 경로 검증은 MCP 내부 `validate_input_path` 참고.
-
 ## 사전 조건
 
 - Python 3.11+
 - AWS 자격 증명 + Bedrock 모델 액세스 (`AWS_REGION`, `BEDROCK_MODEL_ID` 등 — `ppt_translator/config.py`)
-- 선택: 이 디렉터리 루트에 `.env` ( `config` 가 `parent.parent/.env` 로 로드)
+- 선택: `{WORKING_DIR}/skills/ppt-translator/.env` (`config` 가 패키지 상위 루트의 `.env` 를 로드)
 
-## ppt_handler 심화
+## 실행 방법 (execute_code 사용)
 
-클래스·흐름은 `docs/ppt_handler_structure.md` 와 `ppt_translator/ppt_handler.py` 를 함께 본다.
+`subprocess.run()` 으로 실행할 때는 **`capture_output=False`** 를 사용해 번역 진행 상황을 실시간으로 출력한다.
+
+```python
+import subprocess, sys, os
+
+SKILL_DIR = "{WORKING_DIR}/skills/ppt-translator"
+input_file  = "/path/to/input.pptx"          # 사용자가 지정한 절대 경로
+output_file = "{WORKING_DIR}/artifacts/output_ko.pptx"  # artifacts/ 에 저장 권장
+
+# 1) 의존성 설치
+subprocess.run(["pip", "install", "-r", "requirements.txt", "-q"],
+               cwd=SKILL_DIR, check=True)
+
+# 2) 번역 실행 (capture_output=False → 진행 상황 실시간 출력)
+result = subprocess.run(
+    [sys.executable, "-m", "ppt_translator.cli",
+     "translate", input_file,
+     "-t", "ko",
+     "-o", output_file],
+    cwd=SKILL_DIR,
+    capture_output=False,
+    text=True,
+)
+print("Return code:", result.returncode)
+```
+
+## CLI 서브커맨드 & 옵션 레퍼런스
+
+> **공통 주의**: 출력 경로는 `--output`이 아니라 반드시 `-o` / `--output-file` 을 사용한다.
+
+### `translate` — 전체 슬라이드 번역
+
+```bash
+python -m ppt_translator.cli translate INPUT_FILE [OPTIONS]
+```
+
+| 옵션 | 단축 | 설명 |
+|------|------|------|
+| `--target-language` | `-t` | 대상 언어 (기본 `ko`) |
+| `--output-file` | `-o` | 출력 파일 경로 |
+| `--model-id` | `-m` | Bedrock 모델 ID |
+| `--source-language` | | 원문 언어 코드 (예: `en`). 생략 시 자동 감지 |
+| `--no-detect-source` | | 원문 언어 자동 감지 비활성화 (모델이 컨텍스트로 판단) |
+| `--no-polishing` | | 자연어 다듬기(polishing) 비활성화 |
+| `--glossary` | `-g` | 용어집 YAML 파일 (기본: CWD의 `./glossary.yaml`) |
+| `--cache-backend` | | `sqlite`(기본) / `memory` / `none` |
+| `--cache-path` | | SQLite 캐시 경로 |
+| `--no-cache` | | 캐시 비활성화 |
+| `--dry-run` | | 비용 추정만 (번역·저장 없음) |
+| `--no-charts` | | 차트 메타 번역 건너뜀 |
+
+### `translate-slides` — 특정 슬라이드만 번역
+
+```bash
+python -m ppt_translator.cli translate-slides INPUT_FILE -s "1,3,5" -t ko -o output.pptx
+python -m ppt_translator.cli translate-slides INPUT_FILE -s "2-4"   -t ko -o output.pptx
+```
+
+| 옵션 | 단축 | 설명 |
+|------|------|------|
+| `--slides` | `-s` | 슬라이드 번호. 쉼표 `"1,3,5"` 또는 범위 `"2-4"` **(필수)** |
+| (이하 `translate`와 동일) | | |
+
+### `batch-translate` — 폴더 내 전체 .pptx 일괄 번역
+
+```bash
+python -m ppt_translator.cli batch-translate INPUT_FOLDER -t ko -o OUTPUT_FOLDER
+```
+
+| 옵션 | 단축 | 설명 |
+|------|------|------|
+| `--target-language` | `-t` | 대상 언어 |
+| `--output-folder` | `-o` | 출력 폴더 경로 |
+| `--workers` | `-w` | 병렬 처리 워커 수 (기본 4) |
+| `--recursive` / `--no-recursive` | `-r` / `-R` | 하위 폴더 재귀 처리 (기본: 활성화) |
+| (캐시·용어집·dry-run 등 `translate`와 동일) | | |
+
+### `info` — 슬라이드 정보 미리보기
+
+```bash
+python -m ppt_translator.cli info INPUT_FILE
+```
