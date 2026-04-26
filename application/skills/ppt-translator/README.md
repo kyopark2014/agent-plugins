@@ -1,6 +1,6 @@
-# ppt-translator (이 저장소 내 스킬)
+# PPT Translator
 
-이 디렉터리는 **에이전트 스킬**과 함께, Amazon Bedrock으로 PowerPoint(`.pptx`)를 번역하는 **Python 번들**을 담고 있습니다. 슬라이드·도형·노트·차트 메타(제목·축 등)를 가능한 한 유지한 채 텍스트를 번역합니다.
+이 디렉터리는 PPT를 번역하는 에이전트 스킬을 Amazon Bedrock으로 구현합니다. 슬라이드·도형·노트·차트 메타(제목·축 등)를 가능한 한 유지한 채 텍스트를 번역할 수 있습니다.
 
 ## 기반 코드(출처)
 
@@ -20,17 +20,13 @@
 
 ## 빠른 실행 (스킬 루트에서)
 
-`SKILL.md`의 **Directory Convention**(`{WORKING_DIR}/skills/ppt-translator`)을 먼저 읽어 주시기 바랍니다.
+아래와 같이 필요한 패키지를 설치합니다. SKILL뿐 아니라 CLI로 실행할 수 있습니다.
 
 ```bash
-cd "${WORKING_DIR}/skills/ppt-translator"
+cd application/skills/ppt-translator"
 pip install -r requirements.txt
 python -m ppt_translator.cli translate /path/to/file.pptx --target-language ko
 ```
 
 - AWS 자격 증명과 Bedrock 모델 액세스가 필요합니다. 환경 변수·설정은 `ppt_translator/config.py`를 참고해 주십시오.
 - 기본 대상 언어는 `ko`(한국어)입니다.
-
-## 라이선스
-
-Upstream 프로젝트의 라이선스를 따릅니다. 세부 사항은 [daekeun-ml/ppt-translator](https://github.com/daekeun-ml/ppt-translator) 저장소의 `LICENSE`를 확인해 주십시오.
