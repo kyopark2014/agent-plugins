@@ -5,3 +5,4 @@ python-pptx>=1.0.2
 tenacity>=8.2.0
 pyyaml>=6.0
 rich>=13.7.0
+langdetect>=1.0.9
