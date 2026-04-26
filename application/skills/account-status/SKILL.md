@@ -33,6 +33,15 @@ description: Generate a account status report by taking an account name, analyze
 - 아래 두 계정은 **알려진 SFDC Account ID**로 우선 매핑할 수 있습니다:
   - `LG Chemical` → `0015000000fSYKUAA4`
   - `LG Energy Solution` (LG Ensol) → `0014z00001bw6vaAAA`
+  - `SK E&S` → `0013800001FFCZ7AAP`
+  - `SK Chemicals` → `0013800001G2bXHAAZ`
+  - `SK Gas` → `0013800001DG1Y6AAL`
+  - `SK Innovation` → `0013800001FFCZ2AAP`
+  - `SK Discovery` → `0010z00001TgcUHAAZ`
+  - `SK D&D` → `0010z00001XDeFaAAL`
+  - `LX Semicon` → `0013800001CCbE4AAL`
+  - `Seoul Semiconductor` → `0013800001MGKpLAAX`
+  
 - 입력 계정명이 위 별칭과 일치/유사하면 조회 전에 해당 ID를 우선 사용해도 됩니다.
 - 동명이인이 여러 개면 사용자에게 후보를 보여주고 선택을 받습니다.
 - 계정이 없으면 실패 사유를 알리고 종료합니다.
