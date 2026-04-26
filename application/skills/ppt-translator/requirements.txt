@@ -1,0 +1,8 @@
+boto3>=1.42.5
+click>=8.3.1
+fastmcp>=2.13.3
+python-dotenv>=1.2.1
+python-pptx>=1.0.2
+tenacity>=8.2.0
+pyyaml>=6.0
+rich>=13.7.0

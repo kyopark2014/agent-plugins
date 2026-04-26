@@ -1,0 +1,2 @@
+[console_scripts]
+ppt-translate = ppt_translator.cli:cli

@@ -1,0 +1,26 @@
+Metadata-Version: 2.4
+Name: ppt-translator
+Version: 1.0.8
+Summary: PowerPoint Translator using Amazon Bedrock
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: boto3>=1.40.21
+Requires-Dist: click>=8.2.1
+Requires-Dist: fastmcp>=2.11.3
+Requires-Dist: python-dotenv>=1.1.1
+Requires-Dist: python-pptx>=1.0.2
+Requires-Dist: tenacity>=8.2.0
+Requires-Dist: pyyaml>=6.0
+Requires-Dist: rich>=13.7.0
+Dynamic: license-file
+
+# ppt-translator (번들)
+
+이 디렉터리에 **CLI·MCP·`ppt_translator` 패키지**가 self-contained로 포함되어 있다. 사용·에이전트 지침은 **`SKILL.md`** 를 기준으로 한다.
+
+- 설치·실행: `pyproject.toml` / `requirements.txt`
+- 용어집 예시: `glossary.yaml`
+- 구조·옵션 참고: `docs/cheatsheet.md`, `docs/ppt_handler_structure.md`
+
+Upstream: [daekeun-ml/ppt-translator](https://github.com/daekeun-ml/ppt-translator)
