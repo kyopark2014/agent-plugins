@@ -4,7 +4,7 @@
 
 ## 기반 코드(출처)
 
-**이 폴더의 Python 패키지(`ppt_translator/`)와 동작은 아래 upstream 저장소를 기준으로 가져온 것입니다.**
+**이 폴더의 Python 패키지(`ppt_translator/`)와 동작은 아래 upstream 저장소 (대근님 githb)에서 가져온 것입니다.**
 
 - **Base / upstream:** [https://github.com/daekeun-ml/ppt-translator](https://github.com/daekeun-ml/ppt-translator)
 
