@@ -53,6 +53,9 @@ mode_descriptions = {
     "이미지 분석": [
         "이미지를 선택하여 멀티모달을 이용하여 분석합니다."
     ],
+    "번역하기": [
+        "한국어와 영어에 대한 번역을 제공합니다. 한국어로 입력하면 영어로, 영어로 입력하면 한국어로 번역합니다."        
+    ],    
     "enterprise-search": [
         "Email, chat, documents, and wikis 등 다양한 도구를 이용해 검색을 합니다."
     ],
@@ -77,7 +80,7 @@ with st.sidebar:
 
     st.subheader("🐱 대화 형태")
 
-    options = ["일상적인 대화", "RAG", "Agent", "Agent (Chat)", "이미지 분석"] + [plugin["name"] for plugin in plugin_list]
+    options = ["일상적인 대화", "RAG", "Agent", "Agent (Chat)", "이미지 분석", "번역하기"] + [plugin["name"] for plugin in plugin_list]
     
     # radio selection
     mode = st.radio(
@@ -567,8 +570,13 @@ if prompt := st.chat_input("메시지를 입력하세요."):
                     chat.save_chat_history("문서 분석 결과", assistant_content)
 
                     st.session_state.messages.append({"role": "assistant", "content": assistant_content})
-                
 
+        elif mode == '번역하기':
+            response = chat.translate_text(prompt)
+            st.write(response)
+
+            st.session_state.messages.append({"role": "assistant", "content": response})
+      
         else:
             for plugin in plugin_list:
                 if mode == plugin["name"]:
