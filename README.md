@@ -4,7 +4,76 @@
 
 <img width="1200" alt="image" src="https://github.com/user-attachments/assets/8bd9b991-f577-4bee-8c5f-520caecb041d" />
 
+## 동작 아키텍처
 
+```mermaid
+flowchart TB
+  subgraph UI["Streamlit (app.py)"]
+    M[Mode selection]
+    SKUI[Skill / MCP selection]
+  end
+
+  subgraph LLM["Amazon Bedrock (chat.py)"]
+    CB[ChatBedrock via get_chat]
+  end
+
+  subgraph Skills["Agent Skills (skill.py)"]
+    SRC["skills/*/SKILL.md + plugins/*/skills/*/SKILL.md"]
+    BSP[build_skill_prompt / build_command_prompt]
+    GSI[get_skill_instructions]
+  end
+
+  subgraph LangGraphStack["LangGraph (langgraph_agent.py / plugin_agent.py)"]
+    RLA[run_langgraph_agent]
+    RPA[run_plugin_agent]
+    SG[StateGraph]
+    CM[call_model]
+    TN[ToolNode]
+    BT["Built-in: execute_code, write_file, read_file, bash, upload_file_to_s3, get_current_time"]
+    MSC[MultiServerMCPClient]
+  end
+
+  subgraph MCPServers["MCP Servers (mcp_config.py)"]
+    T[tavily]
+    R[knowledge base / retrieve]
+    N[notion / slack]
+    AWS[aws documentation / use-aws]
+    WF[web_fetch / korea_weather / trade_info]
+  end
+
+  subgraph Storage["Artifacts / S3"]
+    ART[artifacts/]
+    S3[(S3)]
+  end
+
+  M -->|Agent / Agent Chat| RLA
+  M -->|Plugin modes| RPA
+  SKUI -->|skill_list| BSP
+
+  RLA --> SG
+  RPA --> SG
+  SG --> CM
+  SG --> TN
+  CM --> CB
+  TN --> BT
+  TN --> MSC
+  TN --> GSI
+  BSP -->|system_prompt| CM
+  GSI --> SRC
+  MSC --> MCPServers
+  BT --> ART
+  BT --> S3
+```
+
+| 모드 | 모듈 | 설명 |
+|------|------|------|
+| 일상적인 대화 | `chat.general_conversation` | 대화 이력 + `ChatBedrock` 스트리밍 |
+| RAG | `chat.run_rag_with_knowledge_base` | Bedrock Knowledge Base 검색 후 답변 생성 |
+| **Agent** | `langgraph_agent.run_langgraph_agent` | LangGraph + 내장 도구 + MCP + 베이스 Skills (대화 이력 비활성) |
+| **Agent (Chat)** | `langgraph_agent.run_langgraph_agent` | Agent와 동일, 대화 이력 활성 |
+| 이미지 분석 | `chat.summarize_image` | ChatBedrock 멀티모달 (이미지 + 텍스트) 분석 |
+| 번역하기 | `chat.translate_text` | Bedrock 기반 텍스트 번역 |
+| **Plugin** (예: productivity) | `plugin_agent.run_plugin_agent` | LangGraph + 플러그인 Skills + 슬래시 커맨드 + MCP |
 
 ## Skills
 
