@@ -24,3 +24,4 @@ config.json
 *.pdf
 myslide*
 qa*
+*.docx

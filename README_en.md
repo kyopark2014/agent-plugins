@@ -4,6 +4,77 @@ This repository shows how to use [Anthropic's Plugins](https://code.claude.com/d
 
 <img width="1200" alt="image" src="https://github.com/user-attachments/assets/8bd9b991-f577-4bee-8c5f-520caecb041d" />
 
+## Operation Architecture
+
+```mermaid
+flowchart TB
+  subgraph UI["Streamlit (app.py)"]
+    M[Mode selection]
+    SKUI[Skill / MCP selection]
+  end
+
+  subgraph LLM["Amazon Bedrock (chat.py)"]
+    CB[ChatBedrock via get_chat]
+  end
+
+  subgraph Skills["Agent Skills (skill.py)"]
+    SRC["skills/*/SKILL.md + plugins/*/skills/*/SKILL.md"]
+    BSP[build_skill_prompt / build_command_prompt]
+    GSI[get_skill_instructions]
+  end
+
+  subgraph LangGraphStack["LangGraph (langgraph_agent.py / plugin_agent.py)"]
+    RLA[run_langgraph_agent]
+    RPA[run_plugin_agent]
+    SG[StateGraph]
+    CM[call_model]
+    TN[ToolNode]
+    BT["Built-in: execute_code, write_file, read_file, bash, upload_file_to_s3, get_current_time"]
+    MSC[MultiServerMCPClient]
+  end
+
+  subgraph MCPServers["MCP Servers (mcp_config.py)"]
+    T[tavily]
+    R[knowledge base / retrieve]
+    N[notion / slack]
+    AWS[aws documentation / use-aws]
+    WF[web_fetch / korea_weather / trade_info]
+  end
+
+  subgraph Storage["Artifacts / S3"]
+    ART[artifacts/]
+    S3[(S3)]
+  end
+
+  M -->|Agent / Agent Chat| RLA
+  M -->|Plugin modes| RPA
+  SKUI -->|skill_list| BSP
+
+  RLA --> SG
+  RPA --> SG
+  SG --> CM
+  SG --> TN
+  CM --> CB
+  TN --> BT
+  TN --> MSC
+  TN --> GSI
+  BSP -->|system_prompt| CM
+  GSI --> SRC
+  MSC --> MCPServers
+  BT --> ART
+  BT --> S3
+```
+
+| Mode | Module | Description |
+|------|--------|-------------|
+| General conversation | `chat.general_conversation` | Conversation history + Bedrock streaming via `ChatBedrock` |
+| RAG | `chat.run_rag_with_knowledge_base` | Bedrock Knowledge Base retrieval, then answer generation |
+| **Agent** | `langgraph_agent.run_langgraph_agent` | LangGraph + built-in tools + MCP + base Skills (history disabled) |
+| **Agent (Chat)** | `langgraph_agent.run_langgraph_agent` | Same as Agent with conversation history enabled |
+| Image analysis | `chat.summarize_image` | ChatBedrock multimodal (image + text) analysis |
+| Translate | `chat.translate_text` | Text translation via Bedrock |
+| **Plugin** (e.g. productivity) | `plugin_agent.run_plugin_agent` | LangGraph + plugin Skills + slash commands + MCP |
+
 
 ## Plugin
 
