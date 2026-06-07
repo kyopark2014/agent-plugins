@@ -8,61 +8,54 @@
 
 ```mermaid
 flowchart TB
-  subgraph UI["Streamlit (app.py)"]
-    M[Mode selection]
-    SKUI[Skill / MCP selection]
+  UI[Streamlit app.py]
+
+  subgraph Agent["Agent (LangGraph)"]
+    LGA[langgraph_agent<br/>Agent / Agent Chat]
+    LGP[plugin_agent<br/>Plugin 모드]
+    SG[StateGraph<br/>call_model ↔ ToolNode]
+    BT[내장 도구 execute_code, write_file ...]
+    MCP[MCP 도구 mcp_config.py]
+    LGA --> SG
+    LGP --> SG
+    SG --> BT
+    SG --> MCP
   end
 
-  subgraph LLM["Amazon Bedrock (chat.py)"]
-    CB[ChatBedrock via get_chat]
-  end
-
-  subgraph Skills["Agent Skills (skill.py)"]
-    SRC["skills/*/SKILL.md + plugins/*/skills/*/SKILL.md"]
-    BSP[build_skill_prompt / build_command_prompt]
+  subgraph Skill["Skill (skill.py)"]
+    BSP[build_skill_prompt]
+    BCP[build_command_prompt]
     GSI[get_skill_instructions]
+    BASE[베이스 스킬<br/>skills/*/SKILL.md]
+    PSK[플러그인 스킬<br/>plugins/*/skills/*/SKILL.md]
   end
 
-  subgraph LangGraphStack["LangGraph (langgraph_agent.py / plugin_agent.py)"]
-    RLA[run_langgraph_agent]
-    RPA[run_plugin_agent]
-    SG[StateGraph]
-    CM[call_model]
-    TN[ToolNode]
-    BT["Built-in: execute_code, write_file, read_file, bash, upload_file_to_s3, get_current_time"]
-    MSC[MultiServerMCPClient]
+  subgraph Plugin["Plugin (plugins/)"]
+    PLG[productivity / enterprise-search ...]
+    CMD[commands/*.md<br/>슬래시 커맨드]
+    CON[.mcp.json Connector]
+    PLG --> CMD
+    PLG --> CON
+    PLG --> PSK
   end
 
-  subgraph MCPServers["MCP Servers (mcp_config.py)"]
-    T[tavily]
-    R[knowledge base / retrieve]
-    N[notion / slack]
-    AWS[aws documentation / use-aws]
-    WF[web_fetch / korea_weather / trade_info]
-  end
+  BR[Amazon Bedrock chat.py]
 
-  subgraph Storage["Artifacts / S3"]
-    ART[artifacts/]
-    S3[(S3)]
-  end
+  UI -->|Agent 모드| LGA
+  UI -->|Plugin 모드| LGP
 
-  M -->|Agent / Agent Chat| RLA
-  M -->|Plugin modes| RPA
-  SKUI -->|skill_list| BSP
+  LGA -->|베이스 스킬만| BSP
+  LGP -->|베이스 + 플러그인 스킬| BSP
+  LGP -->|/search 등| BCP
+  CMD --> BCP
 
-  RLA --> SG
-  RPA --> SG
-  SG --> CM
-  SG --> TN
-  CM --> CB
-  TN --> BT
-  TN --> MSC
-  TN --> GSI
-  BSP -->|system_prompt| CM
-  GSI --> SRC
-  MSC --> MCPServers
-  BT --> ART
-  BT --> S3
+  BSP -->|이름·설명 XML| SG
+  BCP -->|커맨드 지침| SG
+  SG -->|필요 시 상세 지침 로드| GSI
+  GSI --> BASE
+  GSI --> PSK
+  SG --> BR
+  CON -.-> MCP
 ```
 
 | 모드 | 모듈 | 설명 |
