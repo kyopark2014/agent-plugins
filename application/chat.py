@@ -7,6 +7,7 @@ import uuid
 import base64
 import info 
 import utils
+import bedrock_data_retention
 import csv
 import PyPDF2
 from langchain_core.documents import Document
@@ -15,6 +16,7 @@ from urllib import parse
 from io import BytesIO
 from PIL import Image
 from langchain_aws import ChatBedrock
+from langchain_openai import ChatOpenAI
 from botocore.config import Config
 from botocore.exceptions import ClientError
 from langchain_core.prompts import MessagesPlaceholder, ChatPromptTemplate
@@ -189,6 +191,46 @@ def get_max_output_tokens(model_id: str = "") -> int:
         return 64000
     return 8192
 
+
+def _build_openai_chat(profile: dict, max_output_tokens: int):
+    """Build OpenAI-on-Bedrock chat model (Mantle Responses API or invoke_model)."""
+    bedrock_region = profile["bedrock_region"]
+    model_id = profile["model_id"]
+    mantle_api = profile.get("mantle_api", "chat")
+
+    if mantle_api == "responses":
+        def bearer_token_provider() -> str:
+            return bedrock_data_retention.get_bedrock_bearer_token(bedrock_region)
+
+        return ChatOpenAI(
+            model=model_id,
+            api_key=bearer_token_provider,
+            base_url=f"https://bedrock-mantle.{bedrock_region}.api.aws/openai/v1",
+            use_responses_api=True,
+            max_tokens=max_output_tokens,
+        )
+
+    boto3_bedrock = boto3.client(
+        service_name="bedrock-runtime",
+        region_name=bedrock_region,
+        config=Config(
+            retries={"max_attempts": 30},
+            read_timeout=300,
+        ),
+    )
+    chat = ChatBedrock(
+        model_id=model_id,
+        client=boto3_bedrock,
+        model_kwargs={
+            "max_tokens": max_output_tokens,
+            "temperature": 0.1,
+        },
+        region_name=bedrock_region,
+    )
+    chat.streaming = False
+    return chat
+
+
 def get_chat(extended_thinking):
     global selected_chat, model_type
 
@@ -209,12 +251,28 @@ def get_chat(extended_thinking):
 
     logger.info(f"LLM: {selected_chat}, bedrock_region: {bedrock_region}, modelId: {modelId}, model_type: {model_type}")
 
+    if "fable" in modelId.lower():
+        bedrock_data_retention.ensure_fable_data_retention(
+            modelId,
+            bedrock_region=bedrock_region,
+        )
+
     if profile['model_type'] == 'nova':
         STOP_SEQUENCE = '"\n\n<thinking>", "\n<thinking>", " <thinking>"'
     elif profile['model_type'] == 'claude':
         STOP_SEQUENCE = "\n\nHuman:" 
     elif profile['model_type'] == 'openai':
-        STOP_SEQUENCE = "" 
+        STOP_SEQUENCE = ""
+
+    if profile["model_type"] == "openai":
+        chat = _build_openai_chat(profile, maxOutputTokens)
+        if multi_region == "Enable":
+            selected_chat = selected_chat + 1
+            if selected_chat == number_of_models:
+                selected_chat = 0
+        else:
+            selected_chat = 0
+        return chat
                           
     # bedrock   
     boto3_bedrock = boto3.client(
@@ -228,7 +286,7 @@ def get_chat(extended_thinking):
         )
     )
 
-    if profile['model_type'] != 'openai' and extended_thinking=='Enable':
+    if extended_thinking=='Enable':
         logger.info(f"extended_thinking: {extended_thinking}")
         response_budget = max(maxOutputTokens // 8, 4000)
         thinking_budget = maxOutputTokens - response_budget
@@ -241,17 +299,10 @@ def get_chat(extended_thinking):
             },
             "stop_sequences": [STOP_SEQUENCE]
         }
-
-    elif profile['model_type'] != 'openai' and extended_thinking=='Disable':
-        parameters = {
-            "max_tokens":maxOutputTokens,
-            "stop_sequences": [STOP_SEQUENCE]
-        }
-
-    elif profile['model_type'] == 'openai':
+    else:
         parameters = {
             "max_tokens":maxOutputTokens,     
-            "temperature":0.1
+            "stop_sequences": [STOP_SEQUENCE]
         }
 
     chat = ChatBedrock(   # new chat model
@@ -260,10 +311,6 @@ def get_chat(extended_thinking):
         model_kwargs=parameters,
         region_name=bedrock_region
     )
-    
-    # Disable streaming for OpenAI models
-    if profile['model_type'] == 'openai':
-        chat.streaming = False
     
     if multi_region=='Enable':
         selected_chat = selected_chat + 1
@@ -687,12 +734,21 @@ def get_parallel_processing_chat(models, selected):
     maxOutputTokens = 4096
     logger.info(f'selected_chat: {selected}, bedrock_region: {bedrock_region}, modelId: {modelId}, model_type: {model_type}')
 
+    if "fable" in modelId.lower():
+        bedrock_data_retention.ensure_fable_data_retention(
+            modelId,
+            bedrock_region=bedrock_region,
+        )
+
     if profile['model_type'] == 'nova':
         STOP_SEQUENCE = '"\n\n<thinking>", "\n<thinking>", " <thinking>"'
     elif profile['model_type'] == 'claude':
         STOP_SEQUENCE = "\n\nHuman:" 
     elif profile['model_type'] == 'openai':
-        STOP_SEQUENCE = "" 
+        STOP_SEQUENCE = ""
+
+    if profile["model_type"] == "openai":
+        return _build_openai_chat(profile, maxOutputTokens)
                           
     # bedrock   
     boto3_bedrock = boto3.client(
@@ -701,31 +757,23 @@ def get_parallel_processing_chat(models, selected):
         config=Config(
             retries = {
                 'max_attempts': 30
-            }
+            },
+            read_timeout=300
         )
     )
 
-    if profile['model_type'] != 'openai':
-        parameters = {
-            "max_tokens":maxOutputTokens,
-            "stop_sequences": [STOP_SEQUENCE]
-        }
-
-    else:
-        parameters = {
-            "max_tokens":maxOutputTokens,     
-            "temperature":0.1
-        }
+    parameters = {
+        "max_tokens":maxOutputTokens,     
+        "temperature":0.1,
+        "top_k":250,
+        "stop_sequences": [STOP_SEQUENCE]
+    }
 
     chat = ChatBedrock(   # new chat model
         model_id=modelId,
         client=boto3_bedrock, 
         model_kwargs=parameters,
     )        
-    
-    # Disable streaming for OpenAI models
-    if profile['model_type'] == 'openai':
-        chat.streaming = False
     
     return chat
 
