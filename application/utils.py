@@ -32,7 +32,7 @@ def load_config():
         logger.error(f"Error loading config: {e}")
         config = {}
 
-        projectName = "agent-skills"
+        projectName = "agent-plugins"
         session = boto3.Session()
         region = session.region_name
         config['region'] = region
@@ -42,7 +42,7 @@ def load_config():
         response = sts.get_caller_identity()
         accountId = response["Account"]
         config['accountId'] = accountId
-        config['s3_bucket'] = f'storage-for-{projectName}-{accountId}-{region}'
+        config['s3_bucket'] = f'storage-for-rag-project-{accountId}-{region}'
         
         with open(config_path, "w", encoding="utf-8") as f:
             json.dump(config, f, indent=2)    
@@ -321,7 +321,7 @@ def sanitize_data_source_name(name):
 knowledge_base_id = config.get('knowledge_base_id')
 data_source_id = config.get('data_source_id')
 region = config.get('region', 'us-west-2')
-s3_bucket = config.get('s3_bucket', f'storage-for-{projectName}-{accountId}-{region}')
+s3_bucket = config.get('s3_bucket', f'storage-for-rag-project-{accountId}-{region}')
 sharing_url = config.get('sharing_url', '')
 
 def update_sharing_url():
@@ -367,7 +367,7 @@ def update_rag_info():
         )
         logger.info(f"(list_knowledge_bases) response: {response}")
         
-        knowledge_base_name = projectName
+        knowledge_base_name = config.get("knowledge_base_name", "rag-project")
         if "knowledgeBaseSummaries" in response:
             summaries = response["knowledgeBaseSummaries"]
             for summary in summaries:
