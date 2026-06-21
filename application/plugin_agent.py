@@ -87,7 +87,8 @@ async def create_agent(mcp_servers: list, skill_list: list, plugin_name: Optiona
             "recursion_limit": 100,
             "configurable": {"thread_id": chat.user_id},
             "tools": tools,
-            "system_prompt": system_prompt
+            "system_prompt": system_prompt,
+            "max_turns": langgraph_agent.MAX_CONTEXT_TURNS,
         }
     else:
         app = langgraph_agent.buildChatAgent(tools)
@@ -95,7 +96,8 @@ async def create_agent(mcp_servers: list, skill_list: list, plugin_name: Optiona
             "recursion_limit": 100,
             "configurable": {"thread_id": chat.user_id},
             "tools": tools,
-            "system_prompt": system_prompt
+            "system_prompt": system_prompt,
+            "max_turns": langgraph_agent.MAX_CONTEXT_TURNS,
         }        
     
     return app, config
