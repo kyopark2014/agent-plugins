@@ -22,7 +22,7 @@ logger = logging.getLogger("telegram_bot")
 
 TELEGRAM_BOT_TOKEN = utils.telegram_api_key
 
-DEFAULT_MODEL = "Claude 4.5 Haiku"
+DEFAULT_MODEL = "Claude 5.0 Sonnet"
 DEFAULT_MCP_SERVERS = ["basic", "knowledge base", "code interpreter", "aws_documentation"]
 
 chat.update(DEFAULT_MODEL, "Enable", "Disable", "Enable")

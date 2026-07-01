@@ -24,7 +24,7 @@ DISCORD_BOT_TOKEN = (
     getattr(utils, "discord_bot_token", None) or os.environ.get("DISCORD_BOT_TOKEN") or ""
 )
 
-DEFAULT_MODEL = "Claude 4.7 Opus"
+DEFAULT_MODEL = "Claude 5.0 Sonnet"
 DEFAULT_MCP_SERVERS = ["web_fetch", "slack", "notion", "tavily", "aws_documentation", "korea_weather"]
 DEFAULT_SKILL_LIST = ["skill-creator", "graphify", "myslide", "browser-use"]
 
