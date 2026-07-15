@@ -208,12 +208,42 @@ async def run_plugin_agent(query, mcp_servers, skill_list, plugin_name, plugin_s
         result = "답변을 찾지 못하였습니다."
     logger.info(f"result: {result}")
 
+def _sanitize_reference_text(text: str, max_len: int) -> str:
+    """Collapse whitespace/newlines and strip markdown that breaks list links."""
+    if not text:
+        return ""
+    cleaned = " ".join(str(text).replace("\r", "\n").split())
+    cleaned = cleaned.replace("```", "`").replace("[", "\\[").replace("]", "\\]")
+    if len(cleaned) > max_len:
+        cleaned = cleaned[: max_len - 3].rstrip(" .") + "..."
+    return cleaned
+
+
+def _format_references_markdown(references: list) -> str:
+    """Build a Reference section safe for markdown list rendering."""
+    lines = ["\n\n### Reference"]
+    for i, reference in enumerate(references, start=1):
+        title = _sanitize_reference_text(reference.get("title") or "Untitled", 120)
+        content = _sanitize_reference_text(reference.get("content") or "", 100)
+        url = (reference.get("url") or "").strip()
+        page = reference.get("page")
+        page_suffix = f" , {page} page" if page is not None else ""
+        if url:
+            lines.append(
+                f"{i}. [{title}]({url}){page_suffix} — {content}" if content
+                else f"{i}. [{title}]({url}){page_suffix}"
+            )
+        else:
+            lines.append(
+                f"{i}. {title}{page_suffix} — {content}" if content
+                else f"{i}. {title}{page_suffix}"
+            )
+    return "\n".join(lines) + "\n"
+
+
+
     if references:
-        ref = "\n\n### Reference\n"
-        for i, reference in enumerate(references):
-            page_content = reference['content'][:100].replace("\n", "")
-            ref += f"{i+1}. [{reference['title']}]({reference['url']}), {page_content}...\n"
-        result += ref
+        result += _format_references_markdown(references)
 
     chat.update_final_result(notification_queue, result)
 
