@@ -23,7 +23,11 @@ logger = logging.getLogger("telegram_bot")
 TELEGRAM_BOT_TOKEN = utils.telegram_api_key
 
 DEFAULT_MODEL = "Claude 5.0 Sonnet"
-DEFAULT_MCP_SERVERS = ["basic", "knowledge base", "code interpreter", "aws_documentation"]
+
+def get_default_tool_selection() -> tuple[list[str], list[str]]:
+    skill_list, mcp_servers = utils.get_initial_tool_defaults()
+    return mcp_servers, skill_list
+
 
 chat.update(DEFAULT_MODEL, "Enable", "Disable", "Enable")
 
@@ -73,7 +77,8 @@ async def model_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def mcp_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    servers = "\n".join(f"  - {s}" for s in DEFAULT_MCP_SERVERS)
+    default_mcp_servers, _ = get_default_tool_selection()
+    servers = "\n".join(f"  - {s}" for s in default_mcp_servers)
     await update.message.reply_text(f"현재 MCP 서버:\n{servers}")
 
 

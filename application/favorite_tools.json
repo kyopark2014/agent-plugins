@@ -1,0 +1,14 @@
+{
+  "MCP": [
+    "web_fetch",
+    "korea_weather",
+    "slack",
+    "notion",
+    "websearch"
+  ],
+  "SKILL": [
+    "skill-creator",
+    "myslide",
+    "docx"
+  ]
+}

@@ -20,30 +20,12 @@ sys.path.insert(0, _application_dir)
 
 import utils as utils_mod
 
-_orig_load_config = utils_mod.load_config
-
-# application/app.py: default_skills 미설정 시 UI 기본과 동일하게 사용
-_DEFAULT_SKILLS = ["skill-creator", "graphify"]
-
-
-def _load_config_with_default_skills():
-    cfg = _orig_load_config()
-    if not cfg.get("default_skills"):
-        cfg = {**cfg, "default_skills": list(_DEFAULT_SKILLS)}
-    return cfg
-
-
-utils_mod.load_config = _load_config_with_default_skills
-
 import info
 import chat
 import langgraph_agent
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# application/app.py sidebar 기본 MCP 선택과 동일
-DEFAULT_MCP_SERVERS = ["tavily", "knowledge base", "web_fetch"]
 
 # Streamlit 앱 기본: Skill Mode·Debug Mode 체크 켜짐 → "Enable"
 _DEFAULT_DEBUG = "Enable"
@@ -163,12 +145,14 @@ def chat_endpoint():
         model_name = _resolve_model(model_raw)
         chat.update(model_name, _DEFAULT_DEBUG, _DEFAULT_REASONING, _DEFAULT_SKILL)
 
+        default_skills, default_mcp_servers = utils_mod.get_initial_tool_defaults()
         history_mode = "Enable" if len(history) > 0 else "Disable"
         logger.info(
-            "chat request model=%s history_mode=%s mcp=%s",
+            "chat request model=%s history_mode=%s mcp=%s skills=%s",
             model_name,
             history_mode,
-            DEFAULT_MCP_SERVERS,
+            default_mcp_servers,
+            default_skills,
         )
 
         if stream:
@@ -203,12 +187,14 @@ def chat_endpoint():
 
 
 def _run_langgraph_sync(message, history_mode, notification_queue):
+    default_skills, default_mcp_servers = utils_mod.get_initial_tool_defaults()
     return asyncio.run(
         langgraph_agent.run_langgraph_agent(
             query=message,
-            mcp_servers=DEFAULT_MCP_SERVERS,
+            mcp_servers=default_mcp_servers,
             history_mode=history_mode,
             notification_queue=notification_queue,
+            skill_list=default_skills,
         )
     )
 

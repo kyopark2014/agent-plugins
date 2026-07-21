@@ -19,7 +19,7 @@
 | Reasoning | `Disable` |
 | Skill mode | `Enable` |
 | 폴백 모델명 | `Claude 4.5 Sonnet` |
-| `default_skills` 미설정 시 | `skill-creator`, `graphify` 를 로드 설정에 보강 |
+| 기본 MCP / Skill | `application/favorite_tools.json`의 `MCP`, `SKILL` |
 
 실제 호출은 `chat.update(model, debug, reasoning, skill)` 후 `langgraph_agent.run_langgraph_agent(...)` 입니다.
 

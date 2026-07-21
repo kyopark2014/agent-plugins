@@ -25,8 +25,11 @@ DISCORD_BOT_TOKEN = (
 )
 
 DEFAULT_MODEL = "Claude 5.0 Sonnet"
-DEFAULT_MCP_SERVERS = ["web_fetch", "slack", "notion", "tavily", "aws_documentation", "korea_weather"]
-DEFAULT_SKILL_LIST = ["skill-creator", "graphify", "myslide", "browser-use"]
+
+def get_default_tool_selection() -> tuple[list[str], list[str]]:
+    skill_list, mcp_servers = utils.get_initial_tool_defaults()
+    return mcp_servers, skill_list
+
 
 chat.update(DEFAULT_MODEL, "Enable", "Disable", "Enable")
 
@@ -86,7 +89,8 @@ async def model_cmd(interaction: discord.Interaction, model_name: Optional[str] 
 
 @bot.tree.command(name="mcp", description="현재 MCP 서버 목록")
 async def mcp_cmd(interaction: discord.Interaction):
-    servers = "\n".join(f"  - {s}" for s in DEFAULT_MCP_SERVERS)
+    default_mcp_servers, _ = get_default_tool_selection()
+    servers = "\n".join(f"  - {s}" for s in default_mcp_servers)
     await interaction.response.send_message(f"현재 MCP 서버:\n{servers}")
 
 
