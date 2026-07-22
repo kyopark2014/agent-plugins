@@ -7,11 +7,13 @@ Deletes all AWS resources created by installer.py.
 import argparse
 import json
 import logging
+import os
 import sys
 import time
 
 import boto3
 from botocore.exceptions import ClientError
+from bedrock_agentcore.memory import MemoryClient
 
 # Configuration (must match installer.py)
 project_name = "agent-plugins"
@@ -415,13 +417,69 @@ def _list_all_agentcore_gateway_targets(gateway_id: str):
             break
     return targets
 
+def delete_agentcore_memory() -> bool:
+    """Delete AgentCore Memory created by installer.
+
+    Looks up memory_id from application/config.json first, then falls back to
+    listing memories whose id prefix matches project_name (hyphens → underscores).
+
+    Returns True when memory was deleted or did not exist.
+    Returns False when deletion failed.
+    """
+    logger.info("[3/6] Deleting AgentCore Memory")
+
+    memory_name = project_name.replace("-", "_")
+    memory_id = None
+
+    try:
+        config_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "application", "config.json"
+        )
+        try:
+            with open(config_path, "r", encoding="utf-8") as f:
+                config_data = json.load(f)
+            memory_id = config_data.get("memory_id")
+            if memory_id:
+                logger.info(f"  Found memory_id in config.json: {memory_id}")
+        except (OSError, json.JSONDecodeError):
+            pass
+
+        memory_client = MemoryClient(region_name=region)
+        if not memory_id:
+            memories = memory_client.list_memories()
+            for memory in memories:
+                mid = memory.get("id", "")
+                if mid.split("-")[0] == memory_name:
+                    memory_id = mid
+                    logger.info(f"  Found memory by name: {memory_id}")
+                    break
+
+        if not memory_id:
+            logger.info(f"  AgentCore Memory not found for project: {project_name}")
+            return True
+
+        memory_client.delete_memory_and_wait(memory_id)
+        logger.info(f"  ✓ Deleted AgentCore Memory: {memory_id}")
+        logger.info("✓ AgentCore Memory deleted")
+        return True
+    except Exception as e:
+        error_code = ""
+        if isinstance(e, ClientError):
+            error_code = e.response.get("Error", {}).get("Code", "")
+        if error_code in ("ResourceNotFoundException", "ValidationException"):
+            logger.info(f"  AgentCore Memory already deleted or not found: {memory_id}")
+            return True
+        logger.warning(f"  Could not delete AgentCore Memory: {e}")
+        return False
+
+
 def delete_agentcore_websearch_gateway(skip_confirmation: bool = False) -> bool:
     """Delete AgentCore gateway-websearch and its web-search targets.
 
     Returns True when the gateway was deleted or did not exist.
     Returns False when the user declined deletion or deletion failed.
     """
-    logger.info("[3/6] Deleting AgentCore Web Search gateway")
+    logger.info("[4/6] Deleting AgentCore Web Search gateway")
 
     gateway_id = None
     try:
@@ -526,6 +584,7 @@ def delete_secrets():
 
 def delete_iam_roles(
     delete_agentcore_gateway_role: bool = True,
+    delete_agentcore_memory_role: bool = True,
     delete_knowledge_base_role: bool = False,
 ):
     """Delete IAM roles created by installer."""
@@ -537,10 +596,15 @@ def delete_iam_roles(
     else:
         logger.info(f"  Keeping shared Knowledge Base IAM role ({knowledge_base_role_name})")
 
-    role_names.extend([
-        f"role-agent-for-{project_name}-{region}",
-        f"role-agentcore-memory-for-{project_name}-{region}",
-    ])
+    role_names.append(f"role-agent-for-{project_name}-{region}")
+
+    if delete_agentcore_memory_role:
+        role_names.append(f"role-agentcore-memory-for-{project_name}-{region}")
+    else:
+        logger.info(
+            "  Keeping AgentCore Memory IAM role "
+            f"(role-agentcore-memory-for-{project_name}-{region})"
+        )
 
     if delete_agentcore_gateway_role:
         role_names.append(f"role-agentcore-gateway-websearch-for-{project_name}")
@@ -582,8 +646,11 @@ def clear_config_json(
     delete_knowledge_base: bool = False,
 ):
     """Remove installer-managed fields from application/config.json."""
-    config_path = "application/config.json"
+    config_path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "application", "config.json"
+    )
     installer_fields = [
+        "memory_id",
         "agentcore_memory_role",
         "agentcore_websearch_gateway_name",
         "agentcore_websearch_gateway_region",
@@ -651,7 +718,7 @@ def main():
         print("=" * 60)
         print(f"  Project:  {project_name}")
         print(f"  Region:   {region}")
-        print("  Always removed: Secrets, project IAM roles (agent, agentcore memory)")
+        print("  Always removed: AgentCore Memory, Secrets, project IAM roles (agent, agentcore memory)")
         print("  AgentCore gateway: prompted separately (default: keep)")
         print("=" * 60)
         print("Shared resources (prompted separately, default: keep):")
@@ -689,12 +756,14 @@ def main():
         else:
             logger.info(f"[skip] OpenSearch collection retained (shared resource): {vector_index_name}")
 
+        agentcore_memory_deleted = delete_agentcore_memory()
         agentcore_gateway_deleted = delete_agentcore_websearch_gateway(
             skip_confirmation=args.delete_agentcore_gateway
         )
         delete_secrets()
         delete_iam_roles(
             delete_agentcore_gateway_role=agentcore_gateway_deleted,
+            delete_agentcore_memory_role=agentcore_memory_deleted,
             delete_knowledge_base_role=delete_knowledge_base,
         )
         clear_config_json(
