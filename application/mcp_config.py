@@ -2,6 +2,7 @@ import logging
 import sys
 import utils
 import os
+import shutil
 import json
 import boto3
 
@@ -185,14 +186,25 @@ def load_config(mcp_type):
         }    
     
     elif mcp_type == "aws_documentation":
+        # Prefer preinstalled binary (pip / uv tool install) over uvx so
+        # each agent init does not re-resolve and install 40+ packages.
+        env = {"FASTMCP_LOG_LEVEL": "ERROR"}
+        command = shutil.which("awslabs.aws-documentation-mcp-server")
+        args: list[str] = []
+        if not command:
+            logger.warning(
+                "awslabs.aws-documentation-mcp-server is not preinstalled; "
+                "falling back to uvx (install once with: "
+                "uv tool install awslabs.aws-documentation-mcp-server)"
+            )
+            command = "uvx"
+            args = ["awslabs.aws-documentation-mcp-server"]
         return {
             "mcpServers": {
                 "awslabs.aws-documentation-mcp-server": {
-                    "command": "uvx",
-                    "args": ["awslabs.aws-documentation-mcp-server@latest"],
-                    "env": {
-                        "FASTMCP_LOG_LEVEL": "ERROR"
-                    }
+                    "command": command,
+                    "args": args,
+                    "env": env,
                 }
             }
         }
