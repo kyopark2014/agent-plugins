@@ -11,7 +11,7 @@ import plugin
 import skill
 
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage, AIMessageChunk
-from langchain_mcp_adapters.client import MultiServerMCPClient
+from langchain.mcp import MCPAdapter
 
 logging.basicConfig(
     level=logging.INFO,
@@ -43,10 +43,16 @@ async def create_agent(mcp_servers: list, skill_list: list, plugin_name: Optiona
     # logger.info(f"server_params: {server_params}")    
 
     try:
-        client = MultiServerMCPClient(server_params)
-        logger.info(f"MCP client is initialized successfully")
-        
-        mcp_tools = await client.get_tools()        # add MCP tools
+        mcp_tools = []
+        for server_name, params in server_params.items():
+            try:
+                async with MCPAdapter({"mcpServers": {server_name: params}}) as adapter:
+                    logger.info(f"MCP client is initialized successfully")
+                    _tools = await adapter.list_tools()
+                mcp_tools.extend(_tools)
+            except Exception as _mcp_err:
+                logger.error(f"Failed to load MCP server '{server_name}': {_mcp_err}")
+        # add MCP tools
         # logger.info(f"mcp_tools: {mcp_tools}")        
         for tool in mcp_tools:
             logger.info(f"mcp_tool: {tool.name}")

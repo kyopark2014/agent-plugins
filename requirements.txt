@@ -3,7 +3,7 @@ streamlit-chat
 streamlit-paste-button
 boto3
 langchain_aws
-langchain
+langchain[mcp]>=1.4.0
 langchain-openai
 openai>=2.41.0
 langchain_community
@@ -12,8 +12,7 @@ langchain_experimental
 langgraph-supervisor
 langgraph-swarm
 langchain-text-splitters
-mcp
-langchain-mcp-adapters
+mcp>=2.1.1
 requests
 python-telegram-bot
 uv
@@ -45,3 +44,4 @@ reportlab
 pypdf
 pdfplumber
 browser-use[cli]
+httpx2
