@@ -249,6 +249,7 @@ def stream_langgraph_agent(message, history_mode, model_name):
 def get_models():
     models = {
         "claude": [
+            "Claude 5.5 Sonnet",
             "Claude 5.0 Sonnet",
             "Claude 5.0 Opus",
             "Claude 4.6 Sonnet",
